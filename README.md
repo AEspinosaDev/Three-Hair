@@ -1,5 +1,4 @@
-# ThreeJS-RealTimeFur-SEDDI
+# tHREE HAIR
 
 ## WORK IN PROGRESS
 
-Original project made in WebGL from scratch: https://github.com/AEspinosaDev/WebGL-RealTimeFur-SEDDI
