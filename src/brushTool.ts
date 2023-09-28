@@ -2,6 +2,18 @@ import { ShaderPass } from '@seddi/three/examples/jsm/postprocessing/ShaderPass.
 import { App } from './app';
 import { FurManager } from './furManager';
 
+
+
+
+// REIMPLEMENT THIS TO ALLOW FOROTHER TYPE OF ACTIONS LIKE PAINTING FUR
+// ************
+// *
+// *
+// *
+// **
+// *
+
+
 export interface IBrush {
   isCombing: boolean,
   isResizingBrush: boolean,

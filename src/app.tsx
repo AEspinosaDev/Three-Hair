@@ -21,6 +21,13 @@ interface ISceneProps {
 
 }
 
+//Check if THREE lets you create a lot of menus and place them in difffferent places.
+//Create menu for basic thing like alias, background color and basic lightining
+//Nother one for fur
+//Another one for hair
+//Another one for import options
+//Maybe create UI layer
+
 export class App {
     renderer: THREE.WebGLRenderer;
     scene: THREE.Scene;
