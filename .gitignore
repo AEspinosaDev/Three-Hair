@@ -1,0 +1,4 @@
+node_modules
+.eslintcache
+dist/
+!global.d.ts
