@@ -12,9 +12,10 @@ import { brushShader } from './Shaders/BrushShader.js';
 import { BrushTool } from './brushTool';
 import { FurManager } from './furManager';
 import { GUI } from "dat.gui";
+import { UILayer } from './guiLayer';
 
 interface ISceneProps {
-    furryObject3D: THREE.Object3D,
+    models: any,
     ambientLight: THREE.AmbientLight,
     pointLight: THREE.PointLight,
     camera: THREE.PerspectiveCamera,
@@ -36,23 +37,27 @@ export class App {
     FBXLoader: FBXLoader;
     textureLoader: THREE.TextureLoader;
     renderComposer: EffectComposer;
-    gui: GUI;
+    // gui: GUI;
+    guiLayer: UILayer;
     loaded: Boolean;
 
     static sceneProps: ISceneProps;
     static controls: OrbitControls;
     static stats: Stats;
+    // gui2: GUI;
 
     constructor() {
         this.scene = new THREE.Scene();
         App.sceneProps = {
-            furryObject3D: null,
+            models: new Array(),
             ambientLight: null,
             pointLight: null,
             camera: new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000),
         }
-
+        const canvas = document.getElementById('canvas');
+        console.log(canvas);
         this.renderer = new THREE.WebGLRenderer({ antialias: true });
+        // this.renderer.
         const renderTarget = new THREE.WebGLRenderTarget(0, 0, {
             format: THREE.RGBAFormat,
             encoding: THREE.sRGBEncoding,
@@ -70,11 +75,14 @@ export class App {
         App.controls.mouseButtons = { MIDDLE: 1, RIGHT: 0 };
 
         App.stats = new Stats();
+        
 
         this.boundTick = this.tick.bind(this);
 
         this.loaded = false;
 
+        // var gui = new GUI({autoPlace:false});
+        // gui.domElement.id = 'gui';
 
 
     }
@@ -101,6 +109,8 @@ export class App {
 
         document.body.appendChild(App.stats.dom);
         document.body.appendChild(this.renderer.domElement);
+        App.stats.dom.style.position ="absolute";
+        App.stats.dom.style.top ="92%";
 
         window.addEventListener("mousemove", (event) => { this.brushTool.onMouseMove(event) });
         window.addEventListener("mouseup", (event) => { this.brushTool.onMouseUp(event) });
@@ -160,8 +170,21 @@ export class App {
      * Initiate some functionality that need objects and scene already set up
     */
     private lateInit() {
-        this.gui = new GUI({ autoPlace: true, width: 310 });
-        FurManager.setupGUI(this.gui);
+        this.guiLayer = new UILayer();
+        this.guiLayer.initGUI();
+        // this.gui = new GUI({ autoPlace: true, width: 350 });
+        
+        // this.gui2 = new GUI({ autoPlace: false});
+        // // this.renderer.domElement.appendChild(this.gui.domElement);
+        // FurManager.setupGUI(this.gui);
+        // console.log( this.gui.domElement);
+        
+        // // this.gui.domElement.id = 'gui';
+        // this.gui2.domElement.style.position ="absolute";
+        // this.gui2.domElement.style.top ="2px";
+        // this.gui2.domElement.style.left ="2px";
+        // document.getElementById("gui").append(this.gui2.domElement);
+        // console.log( this.renderer.domElement);
 
 
     }
@@ -264,7 +287,8 @@ export class App {
                         shell.parent = furryObject;
                         FurManager.computePasses.push(new THREE.WebGLComputePass(FurManager.computeMaterial, shell, root.renderer));
 
-                        App.sceneProps.furryObject3D = furryObject;
+                        // App.sceneProps.furryObject3D = furryObject;
+                        App.sceneProps.models.push(furryObject);
 
                         root.initMikkTSpace(() => {
                             const mikk = {

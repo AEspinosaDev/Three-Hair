@@ -13,3 +13,19 @@
 
 //Brush tool should be reilemented to allow not only combing, but painting.
 
+export class ModelManager{
+
+
+
+
+constructor(){
+
+}
+
+static addModel(){
+
+
+}
+
+
+}

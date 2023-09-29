@@ -100,7 +100,7 @@ export class FurManager {
 
 
     const furFolder = gui.addFolder('Fur')
-
+    // furFolder.hide();
     furFolder.add(furParams, 'Show Fins').onChange((value: Boolean) => {
       FurManager.fins.forEach((element: { visible: Boolean; }) => element.visible = value);
     });
