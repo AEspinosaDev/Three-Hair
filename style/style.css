@@ -1,3 +1,8 @@
-/* #gui { position: absolute; top: 500; left: 500;  } */
 
-  
+body {
+    margin: 0;
+}
+
+#input-objects {
+    display: none;
+}

@@ -13,9 +13,11 @@ import { BrushTool } from './brushTool';
 import { FurManager } from './furManager';
 import { GUI } from "dat.gui";
 import { UILayer } from './guiLayer';
+import { ModelManager } from './modelManager';
 
 interface ISceneProps {
-    models: any,
+    hair: any,
+    avatar: any,
     ambientLight: THREE.AmbientLight,
     pointLight: THREE.PointLight,
     camera: THREE.PerspectiveCamera,
@@ -37,53 +39,42 @@ export class App {
     FBXLoader: FBXLoader;
     textureLoader: THREE.TextureLoader;
     renderComposer: EffectComposer;
-    // gui: GUI;
     guiLayer: UILayer;
     loaded: Boolean;
 
     static sceneProps: ISceneProps;
     static controls: OrbitControls;
     static stats: Stats;
-    // gui2: GUI;
 
     constructor() {
         this.scene = new THREE.Scene();
         App.sceneProps = {
-            models: new Array(),
+            hair: null,
+            avatar: null,
             ambientLight: null,
             pointLight: null,
             camera: new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000),
         }
-        const canvas = document.getElementById('canvas');
-        console.log(canvas);
+
         this.renderer = new THREE.WebGLRenderer({ antialias: true });
-        // this.renderer.
         const renderTarget = new THREE.WebGLRenderTarget(0, 0, {
             format: THREE.RGBAFormat,
             encoding: THREE.sRGBEncoding,
-            samples: 4,
+            samples: 16,
         });
         this.renderComposer = new EffectComposer(this.renderer, renderTarget);
         this.renderComposer.setSize(window.innerWidth, window.innerHeight);
         this.brushTool = new BrushTool(new ShaderPass(brushShader), this.renderer);
-
-
         this.FBXLoader = new FBXLoader();
         this.textureLoader = new THREE.TextureLoader();
 
         App.controls = new OrbitControls(App.sceneProps.camera, this.renderer.domElement);
         App.controls.mouseButtons = { MIDDLE: 1, RIGHT: 0 };
-
         App.stats = new Stats();
-        
 
         this.boundTick = this.tick.bind(this);
 
         this.loaded = false;
-
-        // var gui = new GUI({autoPlace:false});
-        // gui.domElement.id = 'gui';
-
 
     }
 
@@ -104,22 +95,35 @@ export class App {
     private awake() {
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.setClearColor(new THREE.Color(0.1, 0.1, 0.1));
+
         App.controls.target.set(0, 0, 0);
         App.controls.update();
-
+        App.stats.dom.style.position = "absolute";
+        App.stats.dom.style.top = "92%";
         document.body.appendChild(App.stats.dom);
         document.body.appendChild(this.renderer.domElement);
-        App.stats.dom.style.position ="absolute";
-        App.stats.dom.style.top ="92%";
 
+
+        // EVENT LISTENERS
         window.addEventListener("mousemove", (event) => { this.brushTool.onMouseMove(event) });
         window.addEventListener("mouseup", (event) => { this.brushTool.onMouseUp(event) });
         window.addEventListener("mousedown", (event) => { this.brushTool.onMouseDown(event) });
         window.addEventListener("wheel", (event) => { this.brushTool.onMouseWheel(event) });
-        window.addEventListener("resize", () => {this.onWindowResize()});
+        window.addEventListener("resize", () => { this.onWindowResize() });
+        var hairInput = document.getElementById('hair-path');
+        var avatarInput = document.getElementById('avatar-path');
+        var root = this;
+        var inputFile = function (op: boolean) {
+            var file = op? hairInput.files[0]: avatarInput.files[0];
+            const url = URL.createObjectURL(file);
+            ModelManager.uploadModel(url, root.FBXLoader, root.scene, op);
+            root.guiLayer.updateModelName(file.name, op);
+        }
+        hairInput.addEventListener('change', function () { inputFile(true) });
+        avatarInput.addEventListener('change', function () { inputFile(false) });
+        //
 
-       
-
+        
         FurManager.init();
         const renderPass = new RenderPass(this.scene);
         renderPass.camera = App.sceneProps.camera;
@@ -137,11 +141,6 @@ export class App {
      * Function called in which the user can implement and setup the scene
      */
     private init() {
-        const skinMat = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(0.02, .02, .02),
-            metalness: 0,
-            roughness: 0.75
-        });
 
         const ambientLight = new THREE.AmbientLight(0xffffff, 10);
         this.scene.add(ambientLight);
@@ -153,17 +152,14 @@ export class App {
         this.scene.add(pointLight);
         App.sceneProps.pointLight = pointLight;
 
-        this.loadFurryMesh("bunny.fbx", skinMat, 0, 0, 0, 0.1, -1.57, 0, 0);
+        // this.loadFurryMesh("bunny.fbx", skinMat, 0, 0, 0, 0.1, -1.57, 0, 0);
 
         const finAlphaText = this.textureLoader.load('./data/textures/hairs-alpha.png');
         finAlphaText.wrapS = THREE.RepeatWrapping; //Only horizontal
         FurManager.finMaterial.uniforms.uAlphaTexture.value = finAlphaText;
-        window.addEventListener("keydown", (event) => {
-            if (event.altKey) {
-              this.loadFurryMesh("sphere.fbx", skinMat, 0, 1, 0, 0.1, -1.57, 0, 0)
-            }
-          });
-        App.sceneProps.camera.position.z = 5;
+
+
+        App.sceneProps.camera.position.z = 7;
 
     }
     /**
@@ -172,20 +168,6 @@ export class App {
     private lateInit() {
         this.guiLayer = new UILayer();
         this.guiLayer.initGUI();
-        // this.gui = new GUI({ autoPlace: true, width: 350 });
-        
-        // this.gui2 = new GUI({ autoPlace: false});
-        // // this.renderer.domElement.appendChild(this.gui.domElement);
-        // FurManager.setupGUI(this.gui);
-        // console.log( this.gui.domElement);
-        
-        // // this.gui.domElement.id = 'gui';
-        // this.gui2.domElement.style.position ="absolute";
-        // this.gui2.domElement.style.top ="2px";
-        // this.gui2.domElement.style.left ="2px";
-        // document.getElementById("gui").append(this.gui2.domElement);
-        // console.log( this.renderer.domElement);
-
 
     }
     /**
@@ -193,17 +175,17 @@ export class App {
     */
     private update() {
         App.stats.update();
-        
+
 
     }
     /**
      * Render the scene
      */
     private render() {
-        if (!this.loaded) return;
+        // if (!this.loaded) return;
 
 
-        FurManager.update(this.brushTool.brushParams.isCombing, App.sceneProps.camera);
+        // FurManager.update(this.brushTool.brushParams.isCombing, App.sceneProps.camera);
         this.renderer.clear();
         this.renderComposer.render();
 
@@ -235,81 +217,7 @@ export class App {
      * @param {*number} rot_y In radians
      * @param {*number} rot_z In radians
      */
-    loadFurryMesh(fileName: string, baseMaterial: THREE.Material,
-        // eslint-disable-next-line camelcase
-        pos_x: number, pos_y: number, pos_z: number, scale: number, rot_x: number, rot_y: number, rot_z: number) {
-        let root = this;
-        this.FBXLoader.load(
-            // resource URL
-            "./data/models/" + fileName,
 
-            function (object: any) {
-                function transform(mesh: THREE.Mesh) {
-                    mesh.position.set(pos_x, pos_y, pos_z);
-                    mesh.scale.set(scale, scale, scale);
-                    mesh.rotateX(rot_x);
-                    mesh.rotateY(rot_y);
-                    mesh.rotateZ(rot_z);
-                }
-
-                object.traverse(function (child: any) {
-
-                    if (child.isMesh) {
-
-                        const furryObject = new THREE.Object3D();
-
-                        child.castShadow = true;
-                        child.receiveShadow = true;
-                        //Base mesh
-                        const base = new THREE.Mesh(child.geometry, baseMaterial);
-                        base.parent = furryObject;
-                        transform(base);
-                        base.renderOrder = 0;
-                        root.scene.add(base);
-                        //Fins
-                        const finsGeometry = FurManager.computeFins(base);
-                        const fins = new THREE.Mesh(finsGeometry, FurManager.finMaterial);
-                        transform(fins);
-                        fins.renderOrder = 1;
-                        FurManager.fins.push(fins);
-                        root.scene.add(fins);
-                        fins.parent = furryObject;
-                        FurManager.computePasses.push(new THREE.WebGLComputePass(FurManager.computeMaterial, fins, root.renderer));
-                        //Shells
-                        const instancedGeo = new THREE.InstancedBufferGeometry().copy(child.geometry);
-                        instancedGeo.setAttribute('hairDir', new THREE.BufferAttribute(new Float32Array(instancedGeo.getAttribute('normal').array), 3));
-                        instancedGeo.instanceCount = FurManager.MAX_INSTANCE_COUNT;
-                        const shell = new THREE.Mesh(instancedGeo, FurManager.shellMaterial);
-                        transform(shell);
-                        shell.renderOrder = 2;
-                        FurManager.shells.push(shell);
-                        root.scene.add(shell);
-                        shell.parent = furryObject;
-                        FurManager.computePasses.push(new THREE.WebGLComputePass(FurManager.computeMaterial, shell, root.renderer));
-
-                        // App.sceneProps.furryObject3D = furryObject;
-                        App.sceneProps.models.push(furryObject);
-
-                        root.initMikkTSpace(() => {
-                            const mikk = {
-                                wasm: wasm,
-                                isReady: isReady
-                                , generateTangents: generateTangents
-                            }
-                            computeMikkTSpaceTangents(instancedGeo, mikk);
-
-                        })
-
-                        root.loaded = true;
-                    }
-
-                });
-
-            }
-
-        );
-
-    }
 
     /**
      * Callback method that can be called to maintain render aspect ratio
