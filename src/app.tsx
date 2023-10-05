@@ -13,7 +13,8 @@ import { BrushTool } from './brushTool';
 import { FurManager } from './furManager';
 import { GUI } from "dat.gui";
 import { UILayer } from './guiLayer';
-import { ModelManager } from './modelManager';
+import { ModelManager, TextureType } from './modelManager';
+import { type } from 'os';
 
 interface ISceneProps {
     hair: any,
@@ -104,26 +105,24 @@ export class App {
         document.body.appendChild(this.renderer.domElement);
 
 
-        // EVENT LISTENERS
+        //#region event_listeners
         window.addEventListener("mousemove", (event) => { this.brushTool.onMouseMove(event) });
         window.addEventListener("mouseup", (event) => { this.brushTool.onMouseUp(event) });
         window.addEventListener("mousedown", (event) => { this.brushTool.onMouseDown(event) });
         window.addEventListener("wheel", (event) => { this.brushTool.onMouseWheel(event) });
         window.addEventListener("resize", () => { this.onWindowResize() });
-        var hairInput = document.getElementById('hair-path');
-        var avatarInput = document.getElementById('avatar-path');
         var root = this;
-        var inputFile = function (op: boolean) {
-            var file = op? hairInput.files[0]: avatarInput.files[0];
-            const url = URL.createObjectURL(file);
-            ModelManager.uploadModel(url, root.FBXLoader, root.scene, op);
-            root.guiLayer.updateModelName(file.name, op);
-        }
-        hairInput.addEventListener('change', function () { inputFile(true) });
-        avatarInput.addEventListener('change', function () { inputFile(false) });
-        //
+        document.getElementById('hair-path').addEventListener('change', function () { ModelManager.uploadModel( document.getElementById('hair-path').files[0] ,root.FBXLoader, root.scene,true,root.guiLayer) });
+        document.getElementById('avatar-path').addEventListener('change', function () {  ModelManager.uploadModel( document.getElementById('avatar-path').files[0] ,root.FBXLoader, root.scene,false,root.guiLayer) });
+        document.getElementById('alpha-tex-path').addEventListener('change', function () { ModelManager.uploadTexture(document.getElementById('alpha-tex-path').files[0], root.textureLoader, TextureType.ALPHA,root.guiLayer) })
+        document.getElementById('normal-tex-path').addEventListener('change', function () { ModelManager.uploadTexture(document.getElementById('normal-tex-path').files[0], root.textureLoader, TextureType.NORMAL,root.guiLayer) })
+        document.getElementById('direction-tex-path').addEventListener('change', function () { ModelManager.uploadTexture(document.getElementById('direction-tex-path').files[0], root.textureLoader, TextureType.DIRECTION,root.guiLayer) })
+        document.getElementById('highlight-tex-path').addEventListener('change', function () { ModelManager.uploadTexture(document.getElementById('highlight-tex-path').files[0], root.textureLoader, TextureType.HIGHLIGHT,root.guiLayer) })
+        document.getElementById('tilt-tex-path').addEventListener('change', function () { ModelManager.uploadTexture(document.getElementById('tilt-tex-path').files[0], root.textureLoader, TextureType.TILT,root.guiLayer) })
 
-        
+        //#endregion
+
+
         FurManager.init();
         const renderPass = new RenderPass(this.scene);
         renderPass.camera = App.sceneProps.camera;
@@ -152,22 +151,27 @@ export class App {
         this.scene.add(pointLight);
         App.sceneProps.pointLight = pointLight;
 
-        // this.loadFurryMesh("bunny.fbx", skinMat, 0, 0, 0, 0.1, -1.57, 0, 0);
-
+        
         const finAlphaText = this.textureLoader.load('./data/textures/hairs-alpha.png');
+
         finAlphaText.wrapS = THREE.RepeatWrapping; //Only horizontal
         FurManager.finMaterial.uniforms.uAlphaTexture.value = finAlphaText;
-
-
+        
+        
         App.sceneProps.camera.position.z = 7;
-
+        
     }
     /**
      * Initiate some functionality that need objects and scene already set up
     */
-    private lateInit() {
-        this.guiLayer = new UILayer();
-        this.guiLayer.initGUI();
+   private lateInit() {
+       this.guiLayer = new UILayer();
+       this.guiLayer.initGUI();
+       
+       ModelManager.uploadModel('Loose_Hairstyle.fbx',this.FBXLoader,this.scene,true,this.guiLayer, "Demo Hair");
+       ModelManager.uploadModel('Head_Basemesh.fbx',this.FBXLoader,this.scene,false,this.guiLayer, "Demo Head");
+       ModelManager.uploadTexture('T_StandardWSet_Alpha.png',this.textureLoader,TextureType.ALPHA,this.guiLayer,"Demo Alpha Tex");
+
 
     }
     /**

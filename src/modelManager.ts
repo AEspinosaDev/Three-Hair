@@ -15,25 +15,39 @@ import {
   Scene,
   Color,
   DoubleSide,
+  TextureLoader,
+  Texture,
   BufferGeometry,
   BufferAttribute,
 } from "@seddi/three";
 import { FBXLoader } from "@seddi/three/examples/jsm/loaders/FBXLoader.js";
 import { hairStrandShader } from "./Shaders/HairStrandShader";
 import { App } from "./app";
+import { UILayer } from "./guiLayer";
+
+export enum TextureType {
+  ALPHA = 0,
+  DIRECTION = 1,
+  NORMAL = 2,
+  HIGHLIGHT = 3,
+  TILT = 4,
+}
+
+const MODEL_PATH = './data/models/';
+const TEX_PATH = './data/textures/';
 
 export class ModelManager {
   static uploadModel(
-    url: any,
+    meshFile: any,
     loader: FBXLoader,
     scene: Scene,
-    isHair: boolean = true
+    isHair: boolean,
+    gui: UILayer = null,
+    customName: string = null
   ) {
-    if (App.sceneProps.hair && isHair) scene.remove(App.sceneProps.hair);
-    if (App.sceneProps.avatar && !isHair) scene.remove(App.sceneProps.avatar);
+    touchModel(scene, isHair);
     loader.load(
-      url,
-
+      typeof meshFile != "string" ? URL.createObjectURL(meshFile) : MODEL_PATH+meshFile,
       function (object: any) {
         object.traverse(function (child: any) {
           if (child.isMesh) {
@@ -41,20 +55,58 @@ export class ModelManager {
             child.receiveShadow = true;
             const model = new Mesh(
               child.geometry,
-              isHair ? __skinMaterial : __skinMaterial
+              isHair ? __hairMaterial : __skinMaterial
             );
+            console.log(model.geometry);
+
             model.scale.set(0.1, 0.1, 0.1);
             model.renderOrder = 0;
             isHair
               ? (App.sceneProps.hair = model)
               : (App.sceneProps.avatar = model);
             scene.add(model);
-
-            // root.loaded = true;
+              
+            gui?.updateModelName(!customName ? meshFile.name : customName , isHair);
           }
         });
       }
     );
+  }
+  static uploadTexture(
+    imgFile: any,
+    loader: TextureLoader,
+    type: TextureType,
+    gui: UILayer = null,
+    customName: string = null,
+  ) {
+    const text = loader.load(typeof imgFile != "string" ? URL.createObjectURL(imgFile): TEX_PATH+imgFile);
+    // finAlphaText.wrapS = THREE.RepeatWrapping; //Only horizontal
+    switch (type) {
+      case 0:
+        touchTexture(__hairMaterial.uniforms.uAlphaText.value);
+        __hairMaterial.uniforms.uHasAlphaText.value = true;
+        __hairMaterial.uniforms.uAlphaText.value = text;
+        break;
+      case 1:
+        __hairMaterial.uniforms.uHasAlphaText.value = true;
+        __hairMaterial.uniforms.uAlphaText.value = text;
+        break;
+      case 2:
+        __hairMaterial.uniforms.uHasAlphaText.value = true;
+        __hairMaterial.uniforms.uAlphaText.value = text;
+        break;
+      case 3:
+        __hairMaterial.uniforms.uHasAlphaText.value = true;
+        __hairMaterial.uniforms.uAlphaText.value = text;
+        break;
+      case 4:
+        __hairMaterial.uniforms.uHasAlphaText.value = true;
+        __hairMaterial.uniforms.uAlphaText.value = text;
+        break;
+      default:
+        break;
+    }
+    gui?.updateTextureName(!customName ? imgFile.name : customName,type);
   }
 
   // static uploadFurryMesh(fileName: string, baseMaterial: THREE.Material,
@@ -134,6 +186,14 @@ export class ModelManager {
   //         );
 
   // }
+}
+
+function touchModel(scene: Scene, isHair: boolean) {
+  if (App.sceneProps.hair && isHair) scene.remove(App.sceneProps.hair);
+  if (App.sceneProps.avatar && !isHair) scene.remove(App.sceneProps.avatar);
+}
+function touchTexture(text: any) {
+  if (text) text.dispose();
 }
 
 const __hairMaterial = new ShaderMaterial(hairStrandShader);

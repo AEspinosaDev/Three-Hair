@@ -6,7 +6,7 @@ import {
   OneMinusSrcAlphaFactor,
 } from '@seddi/three';
 /**
- * Shell shader class to store all data needed for the ThreeJs Shader and Raw Shader Material
+ * Hair Strands Shader (Scheuerman Method)
  */
 export const hairStrandShader = {
   uniforms:
@@ -19,18 +19,30 @@ export const hairStrandShader = {
     uFurLength: { value: 2 },
     uTextureSize: { value: 1 },
     uLayers: { value: 32 },
-    uAlphaTexture: { value: 0 },
-    uColorTexture: { value: 0 },
     uAmbientStrength: { value: 0.6 },
     uDiffusePower: { value: 8 },
+    
+    
     uSpecularPower: { value: 16 },
     uSpecularPower2: { value: 16 },
     uTangentTilt1: { value: 2 },
     uTangentTilt2: { value: -2 },
     uLightPos: { value: { x: 5, y: 5, z: 5 } },
     uIntensity: { value: 1.0 },
-    uUseColorText: { value: false },
-    uWaveFrequency: { value: 0.0 },
+    
+    uColorText: { value: 0 },
+    uAlphaText: { value: 0 },
+    uNormalText: { value: 0 },
+    uDirectionText: { value: 0 },
+    uTiltText: { value: 0 },
+    uHighlightText: { value: 0 },
+
+    uHasColorText: { value: false },
+    uHasAlphaText: { value: false },
+    uHasNormalText: { value: false },
+    uHasDirectionText: { value: false },
+    uHasTiltText: { value: false },
+    uHasHighlightText: { value: false },
 
   }
   ,
@@ -38,76 +50,66 @@ export const hairStrandShader = {
   attribute vec3 hairDir;
   attribute vec3 tangent;
 
-  uniform float uFurLength;
-  uniform float uLayers;
-  uniform vec3 uAOstartColor;
-  uniform vec3 uAOendColor;
-  uniform float uWaveFrequency;
-  const float WAVE_AMPLITUDE = 0.00066;
 
+  
+  varying vec3 _pos;
+  varying vec3 _normal;
+  varying vec3 _tangent;
+  varying vec3 _strandDir;
+  varying vec2 _uv;
+  varying vec4 _vao;
+  
   uniform vec3 uLightPos;
-  varying vec3 viewLightPos;
-
-  varying vec3 pos;
-  varying vec3 hairTangent;
-  varying vec3 hairNormal;
-  varying vec3 surfaceNormal;
-  varying vec2 textCoord;
-  varying vec4 VAO;
-  varying float textureOffset;
+  varying vec3 _LightPos;
   
   void main() {
     
-    float f = float(gl_InstanceID+1) * uFurLength/uLayers;
-    float layerCoeff = float(gl_InstanceID) / uLayers;
-    float slope = 0.0;
-    vec3 modifiedHairDir = hairDir;
-    if(uWaveFrequency > 0.0){
-      textureOffset = sin(layerCoeff*uWaveFrequency)*WAVE_AMPLITUDE;
-      slope = cos(layerCoeff*uWaveFrequency)*(WAVE_AMPLITUDE*uWaveFrequency);
-      
-    }else{
-      textureOffset=0.0;
-    }
     
-    modifiedHairDir = normalize(hairDir)+((slope*10.0));
-
-    vec3 offsetPosition =  position + hairDir * vec3(f,f,f);
+    _pos = (modelViewMatrix * vec4(position,1.0)).xyz;
+    _tangent = mat3(transpose(inverse(modelViewMatrix))) * tangent;
+    _normal = mat3(transpose(inverse(modelViewMatrix))) * normal;
+    _strandDir =  mat3(transpose(inverse(modelViewMatrix))) * normal;
+    _uv = uv;
     
-    pos = (modelViewMatrix * vec4(offsetPosition,1.0)).xyz;
-    hairTangent = mat3(transpose(inverse(modelViewMatrix))) * modifiedHairDir;
-    surfaceNormal = mat3(transpose(inverse(modelViewMatrix))) * normal;
-    hairNormal = mat3(transpose(inverse(modelViewMatrix))) * normal;
-    textCoord = uv;
     
-    VAO =  mix(vec4(uAOstartColor,1.0), vec4(uAOendColor,0.0), layerCoeff);
-    
-    viewLightPos = (viewMatrix * vec4(uLightPos,1.0)).xyz;
-    //viewLightPos = (viewMatrix * vec4(-5.0,-5.0,-5.0,0.0)).xyz;
+    _LightPos = (viewMatrix * vec4(uLightPos,1.0)).xyz;
     
    
     
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(offsetPosition,1.0);
+    gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
   }`
 
   ,
   fragmentShader:  /* glsl */`
-  varying vec3 viewLightPos;
+  varying vec3 _LightPos;
 
-  varying vec3 pos;
-  varying vec3 hairTangent;
-  varying vec3 hairNormal;
-  varying vec2 textCoord;
-  varying vec4 VAO;
-  varying float textureOffset;
-  varying vec3 surfaceNormal;
+
+  varying vec3 _pos;
+  varying vec3 _normal;
+  varying vec3 _tangent;
+  varying vec3 _strandDir;
+  varying vec2 _uv;
+  varying vec4 _vao;
 
   uniform float uIntensity;
   uniform vec3 uLightColor;
+  
   uniform vec3 uColor;
   uniform vec3 uSpecularColor;
-  uniform sampler2D uAlphaTexture;
-  uniform sampler2D uColorTexture;
+
+  uniform bool uHasColorText;
+  uniform sampler2D uColorText;
+  uniform bool uHasAlphaText;
+  uniform sampler2D uAlphaText;
+  uniform bool uHasNormalText;
+  uniform sampler2D uNormalText;
+  uniform bool uHasDirectionText;
+  uniform sampler2D uDirectionText;
+  uniform bool uHasTiltText;
+  uniform sampler2D uTiltText;
+  uniform bool uHasHightlightText;
+  uniform sampler2D uHightlightText;
+
   uniform float uTextureSize;
   uniform float uAmbientStrength;
   uniform float uDiffusePower;
@@ -115,7 +117,10 @@ export const hairStrandShader = {
   uniform float uSpecularPower2;
   uniform float uTangentTilt1;
   uniform float uTangentTilt2;
-  uniform bool uUseColorText;
+
+ 
+  
+
 
   float GeometrySchlickGGX(float NdotV, float k)
   {
@@ -138,16 +143,16 @@ export const hairStrandShader = {
 
 vec3 computeKajiyaLighting(){
 
-  vec3 L = normalize(viewLightPos - pos);
-  // vec3 L = normalize(viewLightPos);
-  vec3 V = normalize(-pos);
+  vec3 L = normalize(_LightPos - _pos);
+  // vec3 L = normalize(_LightPos);
+  vec3 V = normalize(-_pos);
   vec3 H = normalize(L + V);
-  vec3 T = normalize(hairTangent);
+  vec3 T = normalize(_strandDir);
 
   vec3 Ka;
   vec3 Kd;
-  uUseColorText ? Ka = texture(uColorTexture,textCoord).rgb : Ka = uColor;
-  uUseColorText ? Kd = texture(uColorTexture,textCoord).rgb : Kd = uColor;
+  uHasColorText ? Ka = texture(uColorText,_uv).rgb : Ka = uColor;
+  uHasColorText ? Kd = texture(uColorText,_uv).rgb : Kd = uColor;
   vec3 Ks = uSpecularColor;
   
   float u =dot(T,L); //Lambertian
@@ -155,12 +160,12 @@ vec3 computeKajiyaLighting(){
   float t =dot(T,V);
   
   // vec3 result = uAmbientStrength*Ka+clamp(((Kd*pow(sin(acos(u)),uDiffusePower)+Ks*pow(sin(acos(v)),uSpecularPower)))*dot(T,L),0.0,1.0);
-  // vec3 result = uAmbientStrength*Ka+(Kd*pow(sin(acos(u)),uDiffusePower)+Ks*pow(sin(acos(v)),uSpecularPower));
+   vec3 result = uAmbientStrength*Ka+(Kd*pow(sin(acos(u)),uDiffusePower)+Ks*pow(sin(acos(v)),uSpecularPower));
   //vec3 result = uAmbientStrength*Ka+(Kd*pow(sin(acos(u)),uDiffusePower)+Ks*pow(u*t+sin(acos(u))*sin(acos(t)),uSpecularPower));
   //vec3 result = uAmbientStrength*Ka+(Kd*pow(sin(acos(u)),uDiffusePower)+clamp(Ks*pow(u*t+sin(acos(u))*sin(acos(t)),uSpecularPower),0.0,1.0));
-  //vec3 result =  uAmbientStrength*Ka+clamp(dot(normalize(hairNormal),L)*GeometrySmith(normalize(hairNormal),V,L,1.0),0.0,0.1)+clamp(dot(normalize(hairNormal),L)*Ks*pow(u*t+sin(acos(u))*sin(acos(t)),uSpecularPower),0.0,1.0);
- vec3 result =  uAmbientStrength*Ka+clamp(Kd*dot(normalize(hairNormal),L)*mix(0.25,1.0,GeometrySmith(normalize(hairNormal),V,L,0.0)),0.0,1.0)+clamp(dot(normalize(hairNormal),L),0.0,1.0)*Ks*pow(sin(acos(v)),uSpecularPower);
- //vec3 result =  uAmbientStrength*Ka+clamp(Kd*mix(0.25,1.0,dot(normalize(hairNormal),L)),0.0,1.0)+clamp(dot(normalize(hairNormal),L),0.0,1.0)*Ks*pow(sin(acos(v)),uSpecularPower);
+  //vec3 result =  uAmbientStrength*Ka+clamp(dot(normalize(_normal),L)*GeometrySmith(normalize(_normal),V,L,1.0),0.0,0.1)+clamp(dot(normalize(_normal),L)*Ks*pow(u*t+sin(acos(u))*sin(acos(t)),uSpecularPower),0.0,1.0);
+ //vec3 result =  uAmbientStrength*Ka+clamp(Kd*dot(normalize(_normal),L)*mix(0.25,1.0,GeometrySmith(normalize(_normal),V,L,0.0)),0.0,1.0)+clamp(dot(normalize(_normal),L),0.0,1.0)*Ks*pow(sin(acos(v)),uSpecularPower);
+ //vec3 result =  uAmbientStrength*Ka+clamp(Kd*mix(0.25,1.0,dot(normalize(_normal),L)),0.0,1.0)+clamp(dot(normalize(_normal),L),0.0,1.0)*Ks*pow(sin(acos(v)),uSpecularPower);
  
   return result*uIntensity;
 
@@ -186,17 +191,17 @@ float strandSpecular(vec3 T, vec3 V, vec3 L, float exponent){
 }
 
 vec3 computeScheuermannLighting(){
-  vec3 L = normalize(viewLightPos - pos);
-  vec3 V = normalize(-pos);
-  vec3 T = normalize(hairTangent);
-  vec3 N = normalize(hairNormal);
-  vec3 sN = normalize(surfaceNormal);
+  vec3 L = normalize(_LightPos - _pos);
+  vec3 V = normalize(-_pos);
+  vec3 T = normalize(_strandDir);
+  vec3 N = normalize(_normal);
+  vec3 sN = normalize(_normal);
 
   vec3 Ka;
   vec3 Kd;
   vec3 Ks = uSpecularColor;
-  uUseColorText ? Ka = texture(uColorTexture,textCoord).rgb : Ka = uColor;
-  uUseColorText ? Kd = texture(uColorTexture,textCoord).rgb : Kd = uColor;
+  uHasColorText ? Ka = texture(uColorText,_uv).rgb : Ka = uColor;
+  uHasColorText ? Kd = texture(uColorText,_uv).rgb : Kd = uColor;
 
   vec3 t1 = shiftTangent(T, N, 0.0);
   vec3 t2 = shiftTangent(T, N, 0.0);
@@ -215,16 +220,14 @@ vec3 computeScheuermannLighting(){
 
 
 void main() {
-    vec2 modTextCoord = textCoord+textureOffset; 
 
-    float alpha = texture(uAlphaTexture,modTextCoord*uTextureSize).r;
+    float alpha = uHasAlphaText ? texture(uAlphaText,_uv).r: 1.0;
+   
     // float alpha = 1.0;
     // gl_FragColor = vec4(computeScheuermannLighting(),1.0);
    gl_FragColor = vec4(computeKajiyaLighting(),1.0);
-
-    gl_FragColor*=VAO;
-
-    gl_FragColor.a*=alpha;
+   //gl_FragColor =  uHasColorText ? vec4(texture(uColorText,_uv).rgb,1.0) : vec4(uColor,1.0);
+  gl_FragColor.a=alpha;
 }
 `
   , depthWrite: true,
