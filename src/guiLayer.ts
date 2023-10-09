@@ -1,7 +1,8 @@
 import { GUI } from "dat.gui";
 import { FurManager } from "./furManager";
-import { TextureType } from "./modelManager";
+import { TextureType, __hairMaterial } from "./modelManager";
 import { App } from "./app";
+import { Color } from "@seddi/three";
 
 const INPUT_FILE_GUI_CONFIG = {
   "Upload Hair Model": function () {
@@ -43,6 +44,27 @@ const INPUT_FILE_GUI_CONFIG = {
   },
   "Highlight Texture": "--",
 };
+const HAIR_MATERIAL_CONFIG = {
+  "Base Color": new Color(
+    __hairMaterial.uniforms.uColor.value.r * 255,
+    __hairMaterial.uniforms.uColor.value.g * 255,
+    __hairMaterial.uniforms.uColor.value.b * 255
+  ),
+  "Highlight Color": new Color(
+    __hairMaterial.uniforms.uSpecularColor.value.r * 255,
+    __hairMaterial.uniforms.uSpecularColor.value.g * 255,
+    __hairMaterial.uniforms.uSpecularColor.value.b * 255
+  ),
+  "Specular 1 Power": __hairMaterial.uniforms.uSpecularPower1.value,
+  "Specular 2 Power": __hairMaterial.uniforms.uSpecularPower2.value,
+  "Use Alpha Texture": true,
+  "Use Tilt texture": true,
+  "Tilt 1":__hairMaterial.uniforms.uTilt1.value,
+  "Tilt 2":__hairMaterial.uniforms.uTilt2.value,
+  "Use Highlight texture": false,
+  "Use Tangent from texture": false,
+};
+
 export class UILayer {
   fileInputUI: GUI;
   optionsUI: GUI;
@@ -51,10 +73,8 @@ export class UILayer {
   constructor() {}
 
   initGUI() {
-    this.optionsUI = new GUI({ autoPlace: true, width: 350 });
-    FurManager.setupGUI(this.optionsUI);
-
     this.setupFileInputGUI();
+    this.setupOptionsGUI();
   }
   private setupFileInputGUI() {
     this.fileInputUI = new GUI({ autoPlace: false, width: 350 });
@@ -104,13 +124,102 @@ export class UILayer {
       "Tilt Texture"
     ).domElement.style.pointerEvents = "none";
     hairTextureFolder.add(config, "Upload Highlight Texture");
-    let img = document.createElement("IMG");
-    img.src = "https://www.tutorialspoint.com/static/images/logo.png";
-    hairTextureFolder
-      .add(config, "Highlight Texture")
-      .domElement.append(img);
+    // let img = document.createElement("IMG");
+    // img.src = "https://www.tutorialspoint.com/static/images/logo.png";
+    hairTextureFolder.add(
+      config,
+      "Highlight Texture"
+    ).domElement.style.pointerEvents = "none";
 
     hairTextureFolder.open();
+  }
+  private setupOptionsGUI() {
+    this.optionsUI = new GUI({ autoPlace: true, width: 350 });
+
+    const ambientFolder = this.optionsUI.addFolder("Ambient Light");
+    ambientFolder
+      .add(App.sceneProps.ambientLight, "intensity", 0, 1,0.1)
+      .onChange(function (value) {
+        __hairMaterial.uniforms.uAmbientIntensity.value = value;
+      });
+    ambientFolder.open();
+
+    const pointFolder = this.optionsUI.addFolder("Point Light");
+
+    pointFolder
+      .add(App.sceneProps.pointLight, "intensity", 0, 100)
+      .onChange(function (value) {
+        __hairMaterial.uniforms.uIntensity.value = value * 0.01;
+
+      });
+    pointFolder
+      .add(App.sceneProps.pointLight.position, "x", -25, 25)
+      .onChange(function (value) {
+        __hairMaterial.uniforms.uLightPos.value.x = value;
+      });
+    pointFolder
+      .add(App.sceneProps.pointLight.position, "y", -25, 25)
+      .onChange(function (value) {
+        __hairMaterial.uniforms.uLightPos.value.y = value;
+      });
+    pointFolder
+      .add(App.sceneProps.pointLight.position, "z", -25, 25)
+      .onChange(function (value) {
+        __hairMaterial.uniforms.uLightPos.value.z = value;
+      });
+    pointFolder.open();
+
+    const hairFolder = this.optionsUI.addFolder("Hair Material");
+
+    var config = HAIR_MATERIAL_CONFIG;
+    hairFolder.addColor(config, "Base Color").onChange((value: any) => {
+      __hairMaterial.uniforms.uColor.value.r = value.r / 255;
+      __hairMaterial.uniforms.uColor.value.g = value.g / 255;
+      __hairMaterial.uniforms.uColor.value.b = value.b / 255;
+    });
+    hairFolder.addColor(config, "Highlight Color").onChange((value: any) => {
+      __hairMaterial.uniforms.uSpecularColor.value.g = value.g / 255;
+      __hairMaterial.uniforms.uSpecularColor.value.b = value.b / 255;
+      __hairMaterial.uniforms.uSpecularColor.value.r = value.r / 255;
+    });
+    hairFolder
+      .add(config, "Specular 1 Power", 0, 124)
+      .onChange((value: number) => {
+        __hairMaterial.uniforms.uSpecularPower1.value = value;
+      });
+    hairFolder
+      .add(config, "Specular 2 Power", 0, 124)
+      .onChange((value: number) => {
+        __hairMaterial.uniforms.uSpecularPower2.value = value;
+      });
+    hairFolder.add(config, "Use Alpha Texture").onChange((value: Boolean) => {
+      __hairMaterial.uniforms.uHasAlphaText.value = value;
+    });
+    hairFolder.add(config, "Use Tilt texture").onChange((value: Boolean) => {
+      __hairMaterial.uniforms.uHasTiltText.value = value;
+    });
+    hairFolder
+    .add(config, "Tilt 1", -5, 5,0.1)
+    .onChange((value: number) => {
+      __hairMaterial.uniforms.uTilt1.value = value;
+    });
+    hairFolder
+    .add(config, "Tilt 2", -5, 5,0.1)
+    .onChange((value: number) => {
+      __hairMaterial.uniforms.uTilt2.value = value;
+    });
+    hairFolder
+      .add(config, "Use Highlight texture")
+      .onChange((value: Boolean) => {
+        __hairMaterial.uniforms.uHasHighlightText.value = value;
+      });
+    hairFolder
+      .add(config, "Use Tangent from texture")
+      .onChange((value: Boolean) => {
+        // __hairMaterial.uniforms.uHasAlphaText.value = value;
+      });
+
+    hairFolder.open();
   }
   updateModelName(newName: any, op: boolean) {
     op
@@ -122,6 +231,7 @@ export class UILayer {
     switch (type) {
       case 0:
         INPUT_FILE_GUI_CONFIG["Alpha Texture"] = newName;
+        HAIR_MATERIAL_CONFIG["Use Alpha Texture"] = true;
         break;
       case 1:
         INPUT_FILE_GUI_CONFIG["Normal Texture"] = newName;
@@ -130,21 +240,31 @@ export class UILayer {
         INPUT_FILE_GUI_CONFIG["Direction Texture"] = newName;
         break;
       case 3:
-        INPUT_FILE_GUI_CONFIG["Tilt Texture"] = newName;
-        break;
-      case 4:
         INPUT_FILE_GUI_CONFIG["Hightlight Texture"] = newName;
+        HAIR_MATERIAL_CONFIG["Use Hightlight Texture"] = true;
+        break;
+        case 4:
+        INPUT_FILE_GUI_CONFIG["Tilt Texture"] = newName;
+        HAIR_MATERIAL_CONFIG["Use Tilt Texture"] = true;
         break;
       default:
         break;
     }
 
     this.updateFileInputUI();
+    this.updateOptionsUI();
   }
   updateFileInputUI() {
     for (var i in this.fileInputUI.__folders) {
       for (var j in this.fileInputUI.__folders[i].__controllers) {
         this.fileInputUI.__folders[i].__controllers[j].updateDisplay();
+      }
+    }
+  }
+  updateOptionsUI() {
+    for (var i in this.optionsUI.__folders) {
+      for (var j in this.optionsUI.__folders[i].__controllers) {
+        this.optionsUI.__folders[i].__controllers[j].updateDisplay();
       }
     }
   }

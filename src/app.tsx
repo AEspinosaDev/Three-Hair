@@ -2,8 +2,8 @@ import * as THREE from '@seddi/three';
 import { EffectComposer } from '@seddi/three/examples/jsm/postprocessing/EffectComposer.js';
 import { OrbitControls } from '@seddi/three/examples/jsm/controls/OrbitControls.js';
 import { FBXLoader } from '@seddi/three/examples/jsm/loaders/FBXLoader.js';
-import { wasm, isReady, ready, generateTangents } from '@seddi/three/examples/jsm/libs/mikktspace.module.js';
-import { computeMikkTSpaceTangents } from '@seddi/three/examples/jsm/utils/BufferGeometryUtils.js';
+
+
 import { RenderPass } from '@seddi/three/examples/jsm/postprocessing/RenderPass.js';
 import { ShaderPass } from '@seddi/three/examples/jsm/postprocessing/ShaderPass.js';
 import { GammaCorrectionShader } from '@seddi/three/examples/jsm/shaders/GammaCorrectionShader.js';
@@ -112,13 +112,13 @@ export class App {
         window.addEventListener("wheel", (event) => { this.brushTool.onMouseWheel(event) });
         window.addEventListener("resize", () => { this.onWindowResize() });
         var root = this;
-        document.getElementById('hair-path').addEventListener('change', function () { ModelManager.uploadModel( document.getElementById('hair-path').files[0] ,root.FBXLoader, root.scene,true,root.guiLayer) });
-        document.getElementById('avatar-path').addEventListener('change', function () {  ModelManager.uploadModel( document.getElementById('avatar-path').files[0] ,root.FBXLoader, root.scene,false,root.guiLayer) });
-        document.getElementById('alpha-tex-path').addEventListener('change', function () { ModelManager.uploadTexture(document.getElementById('alpha-tex-path').files[0], root.textureLoader, TextureType.ALPHA,root.guiLayer) })
-        document.getElementById('normal-tex-path').addEventListener('change', function () { ModelManager.uploadTexture(document.getElementById('normal-tex-path').files[0], root.textureLoader, TextureType.NORMAL,root.guiLayer) })
-        document.getElementById('direction-tex-path').addEventListener('change', function () { ModelManager.uploadTexture(document.getElementById('direction-tex-path').files[0], root.textureLoader, TextureType.DIRECTION,root.guiLayer) })
-        document.getElementById('highlight-tex-path').addEventListener('change', function () { ModelManager.uploadTexture(document.getElementById('highlight-tex-path').files[0], root.textureLoader, TextureType.HIGHLIGHT,root.guiLayer) })
-        document.getElementById('tilt-tex-path').addEventListener('change', function () { ModelManager.uploadTexture(document.getElementById('tilt-tex-path').files[0], root.textureLoader, TextureType.TILT,root.guiLayer) })
+        document.getElementById('hair-path').addEventListener('change', function () { ModelManager.uploadModel(document.getElementById('hair-path').files[0], root.FBXLoader, root.scene, true, root.guiLayer) });
+        document.getElementById('avatar-path').addEventListener('change', function () { ModelManager.uploadModel(document.getElementById('avatar-path').files[0], root.FBXLoader, root.scene, false, root.guiLayer) });
+        document.getElementById('alpha-tex-path').addEventListener('change', function () { ModelManager.uploadTexture(document.getElementById('alpha-tex-path').files[0], root.textureLoader, TextureType.ALPHA, root.guiLayer) })
+        document.getElementById('normal-tex-path').addEventListener('change', function () { ModelManager.uploadTexture(document.getElementById('normal-tex-path').files[0], root.textureLoader, TextureType.NORMAL, root.guiLayer) })
+        document.getElementById('direction-tex-path').addEventListener('change', function () { ModelManager.uploadTexture(document.getElementById('direction-tex-path').files[0], root.textureLoader, TextureType.DIRECTION, root.guiLayer) })
+        document.getElementById('highlight-tex-path').addEventListener('change', function () { ModelManager.uploadTexture(document.getElementById('highlight-tex-path').files[0], root.textureLoader, TextureType.HIGHLIGHT, root.guiLayer) })
+        document.getElementById('tilt-tex-path').addEventListener('change', function () { ModelManager.uploadTexture(document.getElementById('tilt-tex-path').files[0], root.textureLoader, TextureType.TILT, root.guiLayer) })
 
         //#endregion
 
@@ -141,7 +141,7 @@ export class App {
      */
     private init() {
 
-        const ambientLight = new THREE.AmbientLight(0xffffff, 10);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
         this.scene.add(ambientLight);
         App.sceneProps.ambientLight = ambientLight;
 
@@ -151,26 +151,29 @@ export class App {
         this.scene.add(pointLight);
         App.sceneProps.pointLight = pointLight;
 
-        
+
         const finAlphaText = this.textureLoader.load('./data/textures/hairs-alpha.png');
 
         finAlphaText.wrapS = THREE.RepeatWrapping; //Only horizontal
         FurManager.finMaterial.uniforms.uAlphaTexture.value = finAlphaText;
-        
-        
+
+
         App.sceneProps.camera.position.z = 7;
-        
+
     }
     /**
      * Initiate some functionality that need objects and scene already set up
     */
-   private lateInit() {
-       this.guiLayer = new UILayer();
-       this.guiLayer.initGUI();
-       
-       ModelManager.uploadModel('Loose_Hairstyle.fbx',this.FBXLoader,this.scene,true,this.guiLayer, "Demo Hair");
-       ModelManager.uploadModel('Head_Basemesh.fbx',this.FBXLoader,this.scene,false,this.guiLayer, "Demo Head");
-       ModelManager.uploadTexture('T_StandardWSet_Alpha.png',this.textureLoader,TextureType.ALPHA,this.guiLayer,"Demo Alpha Tex");
+    private lateInit() {
+        //Gui init
+        this.guiLayer = new UILayer();
+        this.guiLayer.initGUI();
+
+        //Demo resources loading
+        ModelManager.uploadModel('Loose_Hairstyle.fbx', this.FBXLoader, this.scene, true, this.guiLayer, "Demo Hair");
+        ModelManager.uploadModel('Head_Basemesh.fbx', this.FBXLoader, this.scene, false, this.guiLayer, "Demo Head");
+        ModelManager.uploadTexture('T_StandardWSet_Alpha.png', this.textureLoader, TextureType.ALPHA, this.guiLayer, "Demo Alpha Tex");
+        ModelManager.uploadTexture('tilt_texture.png', this.textureLoader, TextureType.TILT, this.guiLayer, "Demo Tilt Tex");
 
 
     }
@@ -209,18 +212,7 @@ export class App {
     //#endregion
 
     //#region Utilities
-    /**
-     * Load a FBX model geometry given its situation in the world (position, scale and rotation) and a material
-     * @param {*String} fileName 
-     * @param {*material} baseMaterial THREE.Material
-     * @param {*number} pos_x 
-     * @param {*number} pos_y 
-     * @param {*number} pos_z 
-     * @param {*number} scale 3 axis scale
-     * @param {*number} rot_x In radians
-     * @param {*number} rot_y In radians
-     * @param {*number} rot_z In radians
-     */
+
 
 
     /**
@@ -232,10 +224,7 @@ export class App {
         this.renderer.setSize(window.innerWidth, window.innerHeight);
     }
 
-    async initMikkTSpace(cb: any) {
-        await ready
-        cb()
-    }
+
 }
 
 

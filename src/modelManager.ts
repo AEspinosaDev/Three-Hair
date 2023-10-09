@@ -24,6 +24,17 @@ import { FBXLoader } from "@seddi/three/examples/jsm/loaders/FBXLoader.js";
 import { hairStrandShader } from "./Shaders/HairStrandShader";
 import { App } from "./app";
 import { UILayer } from "./guiLayer";
+import {
+  wasm,
+  isReady,
+  ready,
+  generateTangents,
+} from "@seddi/three/examples/jsm/libs/mikktspace.module.js";
+import { computeMikkTSpaceTangents } from "@seddi/three/examples/jsm/utils/BufferGeometryUtils.js";
+
+
+
+
 
 export enum TextureType {
   ALPHA = 0,
@@ -33,8 +44,8 @@ export enum TextureType {
   TILT = 4,
 }
 
-const MODEL_PATH = './data/models/';
-const TEX_PATH = './data/textures/';
+const MODEL_PATH = "./data/models/";
+const TEX_PATH = "./data/textures/";
 
 export class ModelManager {
   static uploadModel(
@@ -47,7 +58,9 @@ export class ModelManager {
   ) {
     touchModel(scene, isHair);
     loader.load(
-      typeof meshFile != "string" ? URL.createObjectURL(meshFile) : MODEL_PATH+meshFile,
+      typeof meshFile != "string"
+        ? URL.createObjectURL(meshFile)
+        : MODEL_PATH + meshFile,
       function (object: any) {
         object.traverse(function (child: any) {
           if (child.isMesh) {
@@ -57,16 +70,31 @@ export class ModelManager {
               child.geometry,
               isHair ? __hairMaterial : __skinMaterial
             );
-            console.log(model.geometry);
 
             model.scale.set(0.1, 0.1, 0.1);
             model.renderOrder = 0;
             isHair
               ? (App.sceneProps.hair = model)
               : (App.sceneProps.avatar = model);
+
+            if (isHair) {
+              initMikkTSpace(() => {
+                const mikk = {
+                  wasm: wasm,
+                  isReady: isReady,
+                  generateTangents: generateTangents,
+                };
+                computeMikkTSpaceTangents(child.geometry, mikk);
+              });
+            }
+            console.log(model.geometry);
+
             scene.add(model);
-              
-            gui?.updateModelName(!customName ? meshFile.name : customName , isHair);
+
+            gui?.updateModelName(
+              !customName ? meshFile.name : customName,
+              isHair
+            );
           }
         });
       }
@@ -77,9 +105,13 @@ export class ModelManager {
     loader: TextureLoader,
     type: TextureType,
     gui: UILayer = null,
-    customName: string = null,
+    customName: string = null
   ) {
-    const text = loader.load(typeof imgFile != "string" ? URL.createObjectURL(imgFile): TEX_PATH+imgFile);
+    const text = loader.load(
+      typeof imgFile != "string"
+        ? URL.createObjectURL(imgFile)
+        : TEX_PATH + imgFile
+    );
     // finAlphaText.wrapS = THREE.RepeatWrapping; //Only horizontal
     switch (type) {
       case 0:
@@ -87,26 +119,30 @@ export class ModelManager {
         __hairMaterial.uniforms.uHasAlphaText.value = true;
         __hairMaterial.uniforms.uAlphaText.value = text;
         break;
-      case 1:
+        case 1:
+          touchTexture(__hairMaterial.uniforms.uAlphaText.value);
+          __hairMaterial.uniforms.uHasAlphaText.value = true;
+          __hairMaterial.uniforms.uAlphaText.value = text;
+          break;
+          case 2:
+        touchTexture(__hairMaterial.uniforms.uAlphaText.value);
         __hairMaterial.uniforms.uHasAlphaText.value = true;
         __hairMaterial.uniforms.uAlphaText.value = text;
         break;
-      case 2:
-        __hairMaterial.uniforms.uHasAlphaText.value = true;
-        __hairMaterial.uniforms.uAlphaText.value = text;
+        case 3:
+        touchTexture(__hairMaterial.uniforms.uHighlightText.value);
+        __hairMaterial.uniforms.uHasHighlightText.value = true;
+        __hairMaterial.uniforms.uHighlightText.value = text;
         break;
-      case 3:
-        __hairMaterial.uniforms.uHasAlphaText.value = true;
-        __hairMaterial.uniforms.uAlphaText.value = text;
-        break;
-      case 4:
-        __hairMaterial.uniforms.uHasAlphaText.value = true;
-        __hairMaterial.uniforms.uAlphaText.value = text;
+        case 4:
+        touchTexture(__hairMaterial.uniforms.uTiltText.value);
+        __hairMaterial.uniforms.uHasTiltText.value = true;
+        __hairMaterial.uniforms.uTiltText.value = text;
         break;
       default:
         break;
     }
-    gui?.updateTextureName(!customName ? imgFile.name : customName,type);
+    gui?.updateTextureName(!customName ? imgFile.name : customName, type);
   }
 
   // static uploadFurryMesh(fileName: string, baseMaterial: THREE.Material,
@@ -195,8 +231,12 @@ function touchModel(scene: Scene, isHair: boolean) {
 function touchTexture(text: any) {
   if (text) text.dispose();
 }
+async function initMikkTSpace(cb: any) {
+  await ready;
+  cb();
+}
 
-const __hairMaterial = new ShaderMaterial(hairStrandShader);
+export const __hairMaterial = new ShaderMaterial(hairStrandShader);
 const __skinMaterial = new MeshStandardMaterial({
   color: new Color(0.2, 0.2, 0.2),
   metalness: 0,
