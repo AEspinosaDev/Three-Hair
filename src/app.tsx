@@ -124,10 +124,19 @@ export class App {
 
 
         FurManager.init();
+        // var scene2 = new THREE.Scene();
+        // const geometry = new THREE.SphereGeometry(15, 32, 16);
+        // const material = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+        // const sphere = new THREE.Mesh(geometry, material);
+        // scene2.add(sphere);
+        // const renderPass2 = new RenderPass(scene2);
+        // renderPass2.camera = App.sceneProps.camera;
+
         const renderPass = new RenderPass(this.scene);
         renderPass.camera = App.sceneProps.camera;
         const gammaCorrectionPass = new ShaderPass(GammaCorrectionShader);
         this.renderComposer.addPass(renderPass);
+        // this.renderComposer.addPass(renderPass2);
         this.renderComposer.addPass(this.brushTool.brushPass);
         this.renderComposer.addPass(gammaCorrectionPass);
         FurManager.renderer = this.renderer;
@@ -170,10 +179,11 @@ export class App {
         this.guiLayer.initGUI();
 
         //Demo resources loading
-        ModelManager.uploadModel('Loose_Hairstyle.fbx', this.FBXLoader, this.scene, true, this.guiLayer, "Demo Hair");
+        ModelManager.uploadModel('Loose_Hairstyle_High.fbx', this.FBXLoader, this.scene, true, this.guiLayer, "Demo Hair");
         ModelManager.uploadModel('Head_Basemesh.fbx', this.FBXLoader, this.scene, false, this.guiLayer, "Demo Head");
         ModelManager.uploadTexture('T_StandardWSet_Alpha.png', this.textureLoader, TextureType.ALPHA, this.guiLayer, "Demo Alpha Tex");
         ModelManager.uploadTexture('tilt_texture.png', this.textureLoader, TextureType.TILT, this.guiLayer, "Demo Tilt Tex");
+        ModelManager.uploadTexture('highlight_texture.png', this.textureLoader, TextureType.HIGHLIGHT, this.guiLayer, "Demo Highlight Tex");
 
 
     }

@@ -23,11 +23,11 @@ const INPUT_FILE_GUI_CONFIG = {
     input.click();
   },
   "Alpha Texture": "--",
-  "Upload Normal Texture": function () {
+  "Upload Occ. Texture": function () {
     var input = document.getElementById("normal-tex-path");
     input.click();
   },
-  "Normal Texture": "--",
+  "Occ. Texture": "--",
   "Upload Direction Texture": function () {
     var input = document.getElementById("direction-tex-path");
     input.click();
@@ -39,7 +39,7 @@ const INPUT_FILE_GUI_CONFIG = {
   },
   "Tilt Texture": "--",
   "Upload Highlight Texture": function () {
-    var input = document.getElementById("hightlight-tex-path");
+    var input = document.getElementById("highlight-tex-path");
     input.click();
   },
   "Highlight Texture": "--",
@@ -57,11 +57,12 @@ const HAIR_MATERIAL_CONFIG = {
   ),
   "Specular 1 Power": __hairMaterial.uniforms.uSpecularPower1.value,
   "Specular 2 Power": __hairMaterial.uniforms.uSpecularPower2.value,
-  "Use Alpha Texture": true,
+  "Use Alpha texture": true,
   "Use Tilt texture": true,
-  "Tilt 1":__hairMaterial.uniforms.uTilt1.value,
-  "Tilt 2":__hairMaterial.uniforms.uTilt2.value,
-  "Use Highlight texture": false,
+  "Tilt 1": __hairMaterial.uniforms.uTilt1.value,
+  "Tilt 2": __hairMaterial.uniforms.uTilt2.value,
+  "Use Occ. texture": false,
+  "Use Highlight texture": true,
   "Use Tangent from texture": false,
 };
 
@@ -108,10 +109,10 @@ export class UILayer {
       config,
       "Alpha Texture"
     ).domElement.style.pointerEvents = "none";
-    hairTextureFolder.add(config, "Upload Normal Texture");
+    hairTextureFolder.add(config, "Upload Occ. Texture");
     hairTextureFolder.add(
       config,
-      "Normal Texture"
+      "Occ. Texture"
     ).domElement.style.pointerEvents = "none";
     hairTextureFolder.add(config, "Upload Direction Texture");
     hairTextureFolder.add(
@@ -124,8 +125,7 @@ export class UILayer {
       "Tilt Texture"
     ).domElement.style.pointerEvents = "none";
     hairTextureFolder.add(config, "Upload Highlight Texture");
-    // let img = document.createElement("IMG");
-    // img.src = "https://www.tutorialspoint.com/static/images/logo.png";
+
     hairTextureFolder.add(
       config,
       "Highlight Texture"
@@ -138,7 +138,7 @@ export class UILayer {
 
     const ambientFolder = this.optionsUI.addFolder("Ambient Light");
     ambientFolder
-      .add(App.sceneProps.ambientLight, "intensity", 0, 1,0.1)
+      .add(App.sceneProps.ambientLight, "intensity", 0, 1, 0.1)
       .onChange(function (value) {
         __hairMaterial.uniforms.uAmbientIntensity.value = value;
       });
@@ -150,7 +150,6 @@ export class UILayer {
       .add(App.sceneProps.pointLight, "intensity", 0, 100)
       .onChange(function (value) {
         __hairMaterial.uniforms.uIntensity.value = value * 0.01;
-
       });
     pointFolder
       .add(App.sceneProps.pointLight.position, "x", -25, 25)
@@ -192,21 +191,20 @@ export class UILayer {
       .onChange((value: number) => {
         __hairMaterial.uniforms.uSpecularPower2.value = value;
       });
-    hairFolder.add(config, "Use Alpha Texture").onChange((value: Boolean) => {
+    hairFolder.add(config, "Use Alpha texture").onChange((value: Boolean) => {
       __hairMaterial.uniforms.uHasAlphaText.value = value;
     });
     hairFolder.add(config, "Use Tilt texture").onChange((value: Boolean) => {
       __hairMaterial.uniforms.uHasTiltText.value = value;
     });
-    hairFolder
-    .add(config, "Tilt 1", -5, 5,0.1)
-    .onChange((value: number) => {
+    hairFolder.add(config, "Tilt 1", -5, 5, 0.1).onChange((value: number) => {
       __hairMaterial.uniforms.uTilt1.value = value;
     });
-    hairFolder
-    .add(config, "Tilt 2", -5, 5,0.1)
-    .onChange((value: number) => {
+    hairFolder.add(config, "Tilt 2", -5, 5, 0.1).onChange((value: number) => {
       __hairMaterial.uniforms.uTilt2.value = value;
+    });
+    hairFolder.add(config, "Use Occ. texture").onChange((value: Boolean) => {
+      __hairMaterial.uniforms.uHasOccTexture.value = value;
     });
     hairFolder
       .add(config, "Use Highlight texture")
@@ -216,6 +214,7 @@ export class UILayer {
     hairFolder
       .add(config, "Use Tangent from texture")
       .onChange((value: Boolean) => {
+        __hairMaterial.uniforms.uHasDirectionText.value = value;
         // __hairMaterial.uniforms.uHasAlphaText.value = value;
       });
 
@@ -234,16 +233,18 @@ export class UILayer {
         HAIR_MATERIAL_CONFIG["Use Alpha Texture"] = true;
         break;
       case 1:
-        INPUT_FILE_GUI_CONFIG["Normal Texture"] = newName;
+        INPUT_FILE_GUI_CONFIG["Direction Texture"] = newName;
+        HAIR_MATERIAL_CONFIG["Use Tangent from texture"] = true;
         break;
       case 2:
-        INPUT_FILE_GUI_CONFIG["Direction Texture"] = newName;
+        INPUT_FILE_GUI_CONFIG["Occ. Texture"] = newName;
+        HAIR_MATERIAL_CONFIG["Use Occ. texture"] = true;
         break;
       case 3:
-        INPUT_FILE_GUI_CONFIG["Hightlight Texture"] = newName;
-        HAIR_MATERIAL_CONFIG["Use Hightlight Texture"] = true;
+        INPUT_FILE_GUI_CONFIG["Highlight Texture"] = newName;
+        HAIR_MATERIAL_CONFIG["Use Highlight Texture"] = true;
         break;
-        case 4:
+      case 4:
         INPUT_FILE_GUI_CONFIG["Tilt Texture"] = newName;
         HAIR_MATERIAL_CONFIG["Use Tilt Texture"] = true;
         break;

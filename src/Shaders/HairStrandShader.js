@@ -15,8 +15,8 @@ export const hairStrandShader = {
     uLightColor: { value: { r: 1, g: 1, b: 1 } },
     uSpecularColor: { value: { r: 0.49, g: 0.39, b: 0.31 } },
     
-    uSpecularPower1: { value: 59 },
-    uSpecularPower2: { value: 75 },
+    uSpecularPower1: { value: 124 },
+    uSpecularPower2: { value: 104 },
     uTilt1: { value: -0.2 },
     uTilt2: { value: -0.4 },
     uLightPos: { value: { x: 5, y: 5, z: 5 } },
@@ -25,14 +25,14 @@ export const hairStrandShader = {
     
     uColorText: { value: 0 },
     uAlphaText: { value: 0 },
-    uNormalText: { value: 0 },
+    uOccTexture: { value: 0 },
     uDirectionText: { value: 0 },
     uTiltText: { value: 0 },
     uHighlightText: { value: 0 },
 
     uHasColorText: { value: false },
     uHasAlphaText: { value: false },
-    uHasNormalText: { value: false },
+    uHasOccTexture: { value: false },
     uHasDirectionText: { value: false },
     uHasTiltText: { value: false },
     uHasHighlightText: { value: false },
@@ -52,6 +52,7 @@ export const hairStrandShader = {
   varying vec3 _strandDir;
   varying vec2 _uv;
   varying vec4 _vao;
+  varying mat3 _TBN;
   
   uniform vec3 uLightPos;
   varying vec3 _LightPos;
@@ -66,7 +67,8 @@ export const hairStrandShader = {
     _strandDir =  mat3(transpose(inverse(modelViewMatrix))) * normal;
     _uv = uv;
     
-    
+    _TBN = mat3(_tangent,_bitangent,_normal);
+
     _normal = mat3(transpose(inverse(modelViewMatrix))) * normal;
     
     _LightPos = (viewMatrix * vec4(uLightPos,1.0)).xyz;
@@ -88,6 +90,7 @@ export const hairStrandShader = {
   varying vec3 _strandDir;
   varying vec2 _uv;
   varying vec4 _vao;
+  varying mat3 _TBN;
 
   uniform float uIntensity;
   uniform vec3 uLightColor;
@@ -100,14 +103,14 @@ export const hairStrandShader = {
   uniform sampler2D uColorText;
   uniform bool uHasAlphaText;
   uniform sampler2D uAlphaText;
-  uniform bool uHasNormalText;
-  uniform sampler2D uNormalText;
+  uniform bool uHasOccTexture;
+  uniform sampler2D uOccTexture;
   uniform bool uHasDirectionText;
   uniform sampler2D uDirectionText;
   uniform bool uHasTiltText;
   uniform sampler2D uTiltText;
-  uniform bool uHasHightlightText;
-  uniform sampler2D uHightlightText;
+  uniform bool uHasHighlightText;
+  uniform sampler2D uHighlightText;
 
   uniform float uAmbientStrength;
   uniform float uDiffusePower;
@@ -160,16 +163,14 @@ float strandSpecular(vec3 T, vec3 V, vec3 L, float exponent){
 vec3 computeScheuermannLighting(){
   vec3 L = normalize(_LightPos - _pos);
   vec3 V = normalize(-_pos);
-  vec3 T = normalize(_bitangent);
+  vec3 T =uHasDirectionText ? normalize(_TBN * (texture(uDirectionText,_uv).rbg * 2.0) - 1.0): normalize(_bitangent);
   vec3 N = normalize(_normal);
 
-  vec3 Ka;
-  vec3 Kd;
+  
   vec3 Ks = uSpecularColor;
-  float shift;
-  uHasColorText ? Ka = texture(uColorText,_uv).rgb : Ka = uColor;
-  uHasColorText ? Kd = texture(uColorText,_uv).rgb : Kd = uColor;
-  uHasTiltText ? shift = texture(uTiltText,_uv).r : shift = 0.0;
+  vec3 Ka = uHasColorText ? texture(uColorText,_uv).rgb : uColor;
+  vec3 Kd = uHasColorText ? texture(uColorText,_uv).rgb : uColor;
+  float shift = uHasTiltText ? texture(uTiltText,_uv).r : 0.0;
 
   vec3 t1 = shiftTangent(T, N, uTilt1 + shift);
   vec3 t2 = shiftTangent(T,  N, uTilt2 + shift);
@@ -181,7 +182,8 @@ vec3 computeScheuermannLighting(){
   vec3 specular = clamp(Ks * strandSpecular(t1, V,L, uSpecularPower1),0.0,0.3);
   //vec3 specular = vec3(0.0);
     
-  specular += clamp(Ks* strandSpecular(t2,V,L,uSpecularPower2),0.0,0.1);
+  float highlight = uHasHighlightText ? texture(uHighlightText,_uv).r:1.0;
+  specular += clamp(Ks*highlight* strandSpecular(t2,V,L,uSpecularPower2),0.0,1.0);
     
   return ambient+(diffuse+clamp(dot(N,L)*specular,0.0,1.0))*uIntensity;//Include lambertian with different 
 
@@ -191,19 +193,22 @@ vec3 computeScheuermannLighting(){
 void main() {
 
     float alpha = uHasAlphaText ? texture(uAlphaText,_uv).r: 1.0;
+    float occ = uHasOccTexture ? texture(uOccTexture,_uv).r: 1.0;
+     
     
     gl_FragColor = vec4(computeScheuermannLighting(),1.0);
+    gl_FragColor*=occ;
     gl_FragColor.a=alpha;
 }
 `
   , depthWrite: true,
-  alphaTest:false,
-  transparent: true,
+  alphaTest:true,
+  // transparent: true,
   blending: CustomBlending,
   blendSrc: SrcAlphaFactor,
   blendDst: OneMinusSrcAlphaFactor,
   blendSrcAlpha: 0,
   blendDstAlpha: 1,
-  side: DoubleSide
+  // side: DoubleSide
 
 }

@@ -120,14 +120,14 @@ export class ModelManager {
         __hairMaterial.uniforms.uAlphaText.value = text;
         break;
         case 1:
-          touchTexture(__hairMaterial.uniforms.uAlphaText.value);
-          __hairMaterial.uniforms.uHasAlphaText.value = true;
-          __hairMaterial.uniforms.uAlphaText.value = text;
+          touchTexture(__hairMaterial.uniforms.uDirectionText.value);
+          __hairMaterial.uniforms.uHasDirectionText.value = true;
+          __hairMaterial.uniforms.uDirectionText.value = text;
           break;
           case 2:
-        touchTexture(__hairMaterial.uniforms.uAlphaText.value);
-        __hairMaterial.uniforms.uHasAlphaText.value = true;
-        __hairMaterial.uniforms.uAlphaText.value = text;
+        touchTexture(__hairMaterial.uniforms.uHasOccTexture.value);
+        __hairMaterial.uniforms.uHasOccTexture.value = true;
+        __hairMaterial.uniforms.uOccTexture.value = text;
         break;
         case 3:
         touchTexture(__hairMaterial.uniforms.uHighlightText.value);
@@ -143,6 +143,7 @@ export class ModelManager {
         break;
     }
     gui?.updateTextureName(!customName ? imgFile.name : customName, type);
+    // gui?.updateOptionsUI();
   }
 
   // static uploadFurryMesh(fileName: string, baseMaterial: THREE.Material,
