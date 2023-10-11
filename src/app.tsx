@@ -112,12 +112,19 @@ export class App {
         window.addEventListener("wheel", (event) => { this.brushTool.onMouseWheel(event) });
         window.addEventListener("resize", () => { this.onWindowResize() });
         var root = this;
+        // @ts-ignore
         document.getElementById('hair-path').addEventListener('change', function () { ModelManager.uploadModel(document.getElementById('hair-path').files[0], root.FBXLoader, root.scene, true, root.guiLayer) });
+        // @ts-ignore
         document.getElementById('avatar-path').addEventListener('change', function () { ModelManager.uploadModel(document.getElementById('avatar-path').files[0], root.FBXLoader, root.scene, false, root.guiLayer) });
+        // @ts-ignore
         document.getElementById('alpha-tex-path').addEventListener('change', function () { ModelManager.uploadTexture(document.getElementById('alpha-tex-path').files[0], root.textureLoader, TextureType.ALPHA, root.guiLayer) })
+        // @ts-ignore
         document.getElementById('normal-tex-path').addEventListener('change', function () { ModelManager.uploadTexture(document.getElementById('normal-tex-path').files[0], root.textureLoader, TextureType.NORMAL, root.guiLayer) })
+        // @ts-ignore
         document.getElementById('direction-tex-path').addEventListener('change', function () { ModelManager.uploadTexture(document.getElementById('direction-tex-path').files[0], root.textureLoader, TextureType.DIRECTION, root.guiLayer) })
+        // @ts-ignore
         document.getElementById('highlight-tex-path').addEventListener('change', function () { ModelManager.uploadTexture(document.getElementById('highlight-tex-path').files[0], root.textureLoader, TextureType.HIGHLIGHT, root.guiLayer) })
+        // @ts-ignore
         document.getElementById('tilt-tex-path').addEventListener('change', function () { ModelManager.uploadTexture(document.getElementById('tilt-tex-path').files[0], root.textureLoader, TextureType.TILT, root.guiLayer) })
 
         //#endregion
@@ -201,9 +208,11 @@ export class App {
     private render() {
         // if (!this.loaded) return;
 
+        // FurManager.update(this.brushTool.brushParams.isCombing, App.sceneProps.camera);ç
+        ModelManager.depthSortHairGeometry();
 
-        // FurManager.update(this.brushTool.brushParams.isCombing, App.sceneProps.camera);
         this.renderer.clear();
+
         this.renderComposer.render();
 
     }

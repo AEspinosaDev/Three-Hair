@@ -1,13 +1,3 @@
-//This class should control all models and assing them types
-//It should control the mesh loading in real time and the assignation of types. Those types should be,
-//Avatar,Clothes or Hair. If avatar or clothes, can be furry by painting it or chosing a texture
-//If hair it uses a special shader
-//If avatar it uses a skin shader
-//If clothes it uses another material
-//At first, user should define what type is the model, if this is implemented using mpl mmodels or something like that, it cou'd be automatized by code.
-//This class should implement all calss to loading mesh funtions and furry meshes
-//Brush tool should be reilemented to allow not only combing, but painting.
-
 import {
   ShaderMaterial,
   MeshStandardMaterial,
@@ -16,9 +6,9 @@ import {
   Color,
   DoubleSide,
   TextureLoader,
-  Texture,
-  BufferGeometry,
-  BufferAttribute,
+  Camera,
+  Vector3,
+  Matrix4,
 } from "@seddi/three";
 import { FBXLoader } from "@seddi/three/examples/jsm/loaders/FBXLoader.js";
 import { hairStrandShader } from "./Shaders/HairStrandShader";
@@ -30,11 +20,12 @@ import {
   ready,
   generateTangents,
 } from "@seddi/three/examples/jsm/libs/mikktspace.module.js";
-import { computeMikkTSpaceTangents } from "@seddi/three/examples/jsm/utils/BufferGeometryUtils.js";
-
-
-
-
+import {
+  computeMikkTSpaceTangents,
+  mergeVertices,
+} from "@seddi/three/examples/jsm/utils/BufferGeometryUtils.js";
+import { forEach } from "lodash";
+import { Triangle } from "./Utils/Triangle";
 
 export enum TextureType {
   ALPHA = 0,
@@ -72,22 +63,25 @@ export class ModelManager {
             );
 
             model.scale.set(0.1, 0.1, 0.1);
-            model.renderOrder = 0;
             isHair
-              ? (App.sceneProps.hair = model)
-              : (App.sceneProps.avatar = model);
-
+            ? (App.sceneProps.hair = model)
+            : (App.sceneProps.avatar = model);
+            
             if (isHair) {
+              model.renderOrder = 1;
               initMikkTSpace(() => {
                 const mikk = {
                   wasm: wasm,
                   isReady: isReady,
                   generateTangents: generateTangents,
                 };
-                computeMikkTSpaceTangents(child.geometry, mikk);
+                computeMikkTSpaceTangents(model.geometry, mikk);
+                const indexedGeometry = mergeVertices(model.geometry);
+                model.geometry = indexedGeometry;
+                model.geometry.index.needsUpdate = true;
+                console.log(model.geometry);
               });
             }
-            console.log(model.geometry);
 
             scene.add(model);
 
@@ -119,22 +113,22 @@ export class ModelManager {
         __hairMaterial.uniforms.uHasAlphaText.value = true;
         __hairMaterial.uniforms.uAlphaText.value = text;
         break;
-        case 1:
-          touchTexture(__hairMaterial.uniforms.uDirectionText.value);
-          __hairMaterial.uniforms.uHasDirectionText.value = true;
-          __hairMaterial.uniforms.uDirectionText.value = text;
-          break;
-          case 2:
+      case 1:
+        touchTexture(__hairMaterial.uniforms.uDirectionText.value);
+        __hairMaterial.uniforms.uHasDirectionText.value = true;
+        __hairMaterial.uniforms.uDirectionText.value = text;
+        break;
+      case 2:
         touchTexture(__hairMaterial.uniforms.uHasOccTexture.value);
         __hairMaterial.uniforms.uHasOccTexture.value = true;
         __hairMaterial.uniforms.uOccTexture.value = text;
         break;
-        case 3:
+      case 3:
         touchTexture(__hairMaterial.uniforms.uHighlightText.value);
         __hairMaterial.uniforms.uHasHighlightText.value = true;
         __hairMaterial.uniforms.uHighlightText.value = text;
         break;
-        case 4:
+      case 4:
         touchTexture(__hairMaterial.uniforms.uTiltText.value);
         __hairMaterial.uniforms.uHasTiltText.value = true;
         __hairMaterial.uniforms.uTiltText.value = text;
@@ -145,7 +139,55 @@ export class ModelManager {
     gui?.updateTextureName(!customName ? imgFile.name : customName, type);
     // gui?.updateOptionsUI();
   }
+  static depthSortHairGeometry() {
+    if (!App.sceneProps.hair) return;
+    const hairGeometry = App.sceneProps.hair.geometry;
+    let indices = hairGeometry.index.array;
+    const positions = hairGeometry.getAttribute("position");
+    const triangles = new Array(0);
 
+    for (let i = 0; i < indices.length; i += 3) {
+      const idx1 = indices[i];
+      const idx2 = indices[i + 1];
+      const idx3 = indices[i + 2];
+      const tri = new Triangle(idx1, idx2, idx3);
+      // @ts-ignore
+      tri.depth = ModelManager.computeDepth(
+        new Vector3().fromBufferAttribute(positions, idx1),
+        new Vector3().fromBufferAttribute(positions, idx2),
+        new Vector3().fromBufferAttribute(positions, idx3),
+        App.sceneProps.camera, App.sceneProps.hair.matrix
+      );
+      triangles.push(tri);
+    }
+    triangles.sort(function (a, b) {
+       return b.depth - a.depth; //high to low
+    });
+    let t_i = 0;
+    for (let i = 0; i < indices.length; i += 3) {
+      indices[i] = triangles[t_i].a;
+      indices[i + 1] = triangles[t_i].b;
+      indices[i + 2] = triangles[t_i].c;
+      t_i++;
+    }
+
+    hairGeometry.index.needsUpdate = true;
+  }
+  private static computeDepth(
+    vertexA: Vector3,
+    vertexB: Vector3,
+    vertexC: Vector3,
+    cam: Camera,
+    transform: Matrix4,
+  ) {
+    //Posicion camara a coordenadas modelo
+    // const modelCameraPosition = cam.position.applyMatrix4(transform);
+    const modelCameraPosition = cam.position;
+    const depthA = modelCameraPosition.distanceTo(vertexA);
+    const depthB = modelCameraPosition.distanceTo(vertexB);
+    const depthC = modelCameraPosition.distanceTo(vertexC);
+    return (depthA + depthB + depthC) * 0.33;
+  }
   // static uploadFurryMesh(fileName: string, baseMaterial: THREE.Material,
   //     // eslint-disable-next-line camelcase
   //     pos_x: number, pos_y: number, pos_z: number, scale: number, rot_x: number, rot_y: number, rot_z: number){
