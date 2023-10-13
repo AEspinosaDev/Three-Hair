@@ -3,8 +3,8 @@ import { EffectComposer } from '@seddi/three/examples/jsm/postprocessing/EffectC
 import { OrbitControls } from '@seddi/three/examples/jsm/controls/OrbitControls.js';
 import { FBXLoader } from '@seddi/three/examples/jsm/loaders/FBXLoader.js';
 
-
 import { RenderPass } from '@seddi/three/examples/jsm/postprocessing/RenderPass.js';
+import { HairRenderPass } from './Utils/HairRenderPass.js';
 import { ShaderPass } from '@seddi/three/examples/jsm/postprocessing/ShaderPass.js';
 import { GammaCorrectionShader } from '@seddi/three/examples/jsm/shaders/GammaCorrectionShader.js';
 import Stats from '@seddi/three/examples/jsm/libs/stats.module.js';
@@ -96,6 +96,7 @@ export class App {
     private awake() {
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.setClearColor(new THREE.Color(0.1, 0.1, 0.1));
+        this.renderer.autoClear = false;
 
         App.controls.target.set(0, 0, 0);
         App.controls.update();
@@ -139,7 +140,7 @@ export class App {
         // const renderPass2 = new RenderPass(scene2);
         // renderPass2.camera = App.sceneProps.camera;
 
-        const renderPass = new RenderPass(this.scene);
+        const renderPass = new HairRenderPass(this.scene);
         renderPass.camera = App.sceneProps.camera;
         const gammaCorrectionPass = new ShaderPass(GammaCorrectionShader);
         this.renderComposer.addPass(renderPass);
@@ -206,13 +207,9 @@ export class App {
      * Render the scene
      */
     private render() {
-        // if (!this.loaded) return;
 
-        // FurManager.update(this.brushTool.brushParams.isCombing, App.sceneProps.camera);ç
         ModelManager.depthSortHairGeometry();
-
         this.renderer.clear();
-
         this.renderComposer.render();
 
     }

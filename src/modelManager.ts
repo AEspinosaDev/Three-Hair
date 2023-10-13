@@ -26,6 +26,7 @@ import {
 } from "@seddi/three/examples/jsm/utils/BufferGeometryUtils.js";
 import { forEach } from "lodash";
 import { Triangle } from "./Utils/Triangle";
+import { Console } from "console";
 
 export enum TextureType {
   ALPHA = 0,
@@ -64,9 +65,9 @@ export class ModelManager {
 
             model.scale.set(0.1, 0.1, 0.1);
             isHair
-            ? (App.sceneProps.hair = model)
-            : (App.sceneProps.avatar = model);
-            
+              ? (App.sceneProps.hair = model)
+              : (App.sceneProps.avatar = model);
+
             if (isHair) {
               model.renderOrder = 1;
               initMikkTSpace(() => {
@@ -156,12 +157,13 @@ export class ModelManager {
         new Vector3().fromBufferAttribute(positions, idx1),
         new Vector3().fromBufferAttribute(positions, idx2),
         new Vector3().fromBufferAttribute(positions, idx3),
-        App.sceneProps.camera, App.sceneProps.hair.matrix
+        App.sceneProps.camera,
+        App.sceneProps.hair.matrixWorld
       );
       triangles.push(tri);
     }
     triangles.sort(function (a, b) {
-       return b.depth - a.depth; //high to low
+      return b.depth - a.depth; //high to low
     });
     let t_i = 0;
     for (let i = 0; i < indices.length; i += 3) {
@@ -178,15 +180,31 @@ export class ModelManager {
     vertexB: Vector3,
     vertexC: Vector3,
     cam: Camera,
-    transform: Matrix4,
+    transform: Matrix4
   ) {
-    //Posicion camara a coordenadas modelo
-    // const modelCameraPosition = cam.position.applyMatrix4(transform);
-    const modelCameraPosition = cam.position;
-    const depthA = modelCameraPosition.distanceTo(vertexA);
-    const depthB = modelCameraPosition.distanceTo(vertexB);
-    const depthC = modelCameraPosition.distanceTo(vertexC);
-    return (depthA + depthB + depthC) * 0.33;
+    const SCALE_OFFSET = 10;
+    const DIVIDE_BY_THREE = 0.333333;
+
+    const modelCameraPosition = new Vector3(
+      cam.position.x,
+      cam.position.y,
+      cam.position.z
+    ).multiplyScalar(SCALE_OFFSET);
+
+    const centroid = new Vector3(
+      vertexA.x + vertexB.x + vertexC.x,
+      vertexA.y + vertexB.y + vertexC.y,
+      vertexA.z + vertexB.z + vertexC.z
+    ).multiplyScalar(DIVIDE_BY_THREE);
+    const depth = modelCameraPosition.distanceTo(centroid);
+
+    // const depthA = modelCameraPosition.distanceTo(vertexA);
+    // const depthB = modelCameraPosition.distanceTo(vertexB);
+    // const depthC = modelCameraPosition.distanceTo(vertexC);
+
+    return depth;
+    // return (depthA + depthB + depthC) * 0.333333;
+    //Hayar centroide
   }
   // static uploadFurryMesh(fileName: string, baseMaterial: THREE.Material,
   //     // eslint-disable-next-line camelcase
@@ -280,6 +298,7 @@ async function initMikkTSpace(cb: any) {
 }
 
 export const __hairMaterial = new ShaderMaterial(hairStrandShader);
+
 const __skinMaterial = new MeshStandardMaterial({
   color: new Color(0.2, 0.2, 0.2),
   metalness: 0,

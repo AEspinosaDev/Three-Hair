@@ -201,7 +201,7 @@ void main() {
     gl_FragColor.a=alpha;
 }
 `
-  , depthWrite: true,
+  , depthWrite: false,
   alphaTest:true,
   // transparent: true,
   blending: CustomBlending,
@@ -212,3 +212,15 @@ void main() {
   // side: DoubleSide
 
 }
+
+//part2 
+//alpha test: true
+//depthWrite: false
+//depth test: true less
+//backface
+
+//part3
+//alpha test: true
+//depthWrite: turue
+//depth test: true less
+//front face
