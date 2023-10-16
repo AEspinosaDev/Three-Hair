@@ -198,13 +198,8 @@ export class ModelManager {
     ).multiplyScalar(DIVIDE_BY_THREE);
     const depth = modelCameraPosition.distanceTo(centroid);
 
-    // const depthA = modelCameraPosition.distanceTo(vertexA);
-    // const depthB = modelCameraPosition.distanceTo(vertexB);
-    // const depthC = modelCameraPosition.distanceTo(vertexC);
-
     return depth;
-    // return (depthA + depthB + depthC) * 0.333333;
-    //Hayar centroide
+  
   }
   // static uploadFurryMesh(fileName: string, baseMaterial: THREE.Material,
   //     // eslint-disable-next-line camelcase
@@ -299,11 +294,12 @@ async function initMikkTSpace(cb: any) {
 
 export const __hairMaterial = new ShaderMaterial(hairStrandShader);
 
-const __skinMaterial = new MeshStandardMaterial({
+export const __skinMaterial = new MeshStandardMaterial({
   color: new Color(0.2, 0.2, 0.2),
   metalness: 0,
   roughness: 0.75,
   side: DoubleSide,
+  envMapIntensity: 0.8  
 });
 const __debugMaterial = new MeshStandardMaterial({
   color: new Color(0.2, 0.2, 0.2),

@@ -2,8 +2,8 @@ import * as THREE from '@seddi/three';
 import { EffectComposer } from '@seddi/three/examples/jsm/postprocessing/EffectComposer.js';
 import { OrbitControls } from '@seddi/three/examples/jsm/controls/OrbitControls.js';
 import { FBXLoader } from '@seddi/three/examples/jsm/loaders/FBXLoader.js';
+import { EXRLoader } from '@seddi/three/examples/jsm/loaders/EXRLoader.js';
 
-import { RenderPass } from '@seddi/three/examples/jsm/postprocessing/RenderPass.js';
 import { HairRenderPass } from './Utils/HairRenderPass.js';
 import { ShaderPass } from '@seddi/three/examples/jsm/postprocessing/ShaderPass.js';
 import { GammaCorrectionShader } from '@seddi/three/examples/jsm/shaders/GammaCorrectionShader.js';
@@ -11,12 +11,13 @@ import Stats from '@seddi/three/examples/jsm/libs/stats.module.js';
 import { brushShader } from './Shaders/BrushShader.js';
 import { BrushTool } from './brushTool';
 import { FurManager } from './furManager';
-import { GUI } from "dat.gui";
 import { UILayer } from './guiLayer';
+import { ENVIROMENT_CONFIG } from './config';
 import { ModelManager, TextureType } from './modelManager';
-import { type } from 'os';
+
 
 interface ISceneProps {
+    scene: THREE.Scene,
     hair: any,
     avatar: any,
     ambientLight: THREE.AmbientLight,
@@ -25,12 +26,6 @@ interface ISceneProps {
 
 }
 
-//Check if THREE lets you create a lot of menus and place them in difffferent places.
-//Create menu for basic thing like alias, background color and basic lightining
-//Nother one for fur
-//Another one for hair
-//Another one for import options
-//Maybe create UI layer
 
 export class App {
     renderer: THREE.WebGLRenderer;
@@ -50,6 +45,7 @@ export class App {
     constructor() {
         this.scene = new THREE.Scene();
         App.sceneProps = {
+            scene: this.scene,
             hair: null,
             avatar: null,
             ambientLight: null,
@@ -158,21 +154,41 @@ export class App {
      */
     private init() {
 
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
         this.scene.add(ambientLight);
         App.sceneProps.ambientLight = ambientLight;
-
+        // this.scene.enviroment = 
         const pointLight = new THREE.PointLight(0xffffff, 75, 100);
-        pointLight.position.set(5, 5, 5);
+        pointLight.position.set(25, 7, -25);
 
         this.scene.add(pointLight);
         App.sceneProps.pointLight = pointLight;
 
 
         const finAlphaText = this.textureLoader.load('./data/textures/hairs-alpha.png');
-
         finAlphaText.wrapS = THREE.RepeatWrapping; //Only horizontal
         FurManager.finMaterial.uniforms.uAlphaTexture.value = finAlphaText;
+
+        const pmremGenerator = new THREE.PMREMGenerator(this.renderer);
+        pmremGenerator.compileEquirectangularShader();
+
+        const exrLoader = new EXRLoader();
+        const root = this;
+        const envMap = exrLoader.load('./data/textures/envMap_2.exr',function(texture){
+
+            var exrCubeRenderTarget = pmremGenerator.fromEquirectangular(texture);
+            var exrBackground = exrCubeRenderTarget.texture;
+            var newEnvMap = exrCubeRenderTarget ? exrCubeRenderTarget.texture : null;
+
+            root.scene.environment =newEnvMap;
+
+            root.scene.background = newEnvMap;
+            root.scene.backgroundIntensity = ENVIROMENT_CONFIG.Intensity;
+            root.scene.backgroundBlurriness = ENVIROMENT_CONFIG.Blur;
+            
+
+        });
+       
 
 
         App.sceneProps.camera.position.z = 7;
@@ -203,12 +219,13 @@ export class App {
 
 
     }
+
     /**
      * Render the scene
      */
     private render() {
 
-        ModelManager.depthSortHairGeometry();
+        //  ModelManager.depthSortHairGeometry();
         this.renderer.clear();
         this.renderComposer.render();
 

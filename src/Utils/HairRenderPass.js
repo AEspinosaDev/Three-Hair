@@ -59,8 +59,8 @@ class HairRenderPass extends RenderPass {
       App.sceneProps.hair.visible = false;
       renderer.render(this.scene, this.camera);
       App.sceneProps.hair.visible = auxVisibility;
-      __hairMaterial.depthWrite = false;
-      __hairMaterial.side= DoubleSide;
+      // __hairMaterial.depthWrite = true;
+      // __hairMaterial.side= DoubleSide;
       //   __hairMaterial.depthTest = false;
       renderer.render(App.sceneProps.hair, this.camera);
     //   __hairMaterial.depthWrite = false;

@@ -1,4 +1,4 @@
-import { furParams } from '../furManager';
+import { DEBUG_CONFIG, HAIR_MATERIAL_CONFIG } from '../config';
 import {
   DoubleSide,
   CustomBlending,
@@ -11,17 +11,17 @@ import {
 export const hairStrandShader = {
   uniforms:
   {
-    uColor: { value: { r: 0.49, g: 0.39, b: 0.31 } },
+    uColor: { value: { r: HAIR_MATERIAL_CONFIG['Base Color'].r/255, g: HAIR_MATERIAL_CONFIG['Base Color'].g/255,b: HAIR_MATERIAL_CONFIG['Base Color'].b/255 } },
     uLightColor: { value: { r: 1, g: 1, b: 1 } },
-    uSpecularColor: { value: { r: 0.49, g: 0.39, b: 0.31 } },
+    uSpecularColor: { value: {  r: HAIR_MATERIAL_CONFIG['Base Color'].r/255, g: HAIR_MATERIAL_CONFIG['Base Color'].g/255,b: HAIR_MATERIAL_CONFIG['Base Color'].b/255 } },
     
-    uSpecularPower1: { value: 124 },
-    uSpecularPower2: { value: 104 },
-    uTilt1: { value: -0.2 },
-    uTilt2: { value: -0.4 },
-    uLightPos: { value: { x: 5, y: 5, z: 5 } },
+    uSpecularPower1: { value: HAIR_MATERIAL_CONFIG["Specular 1 Power"] },
+    uSpecularPower2: { value:  HAIR_MATERIAL_CONFIG["Specular 2 Power"]  },
+    uTilt1: { value: HAIR_MATERIAL_CONFIG["Tilt 1"] },
+    uTilt2: { value:  HAIR_MATERIAL_CONFIG["Tilt 2"] },
+    uLightPos: { value: { x: 25, y: 7, z: -25 } },
     uIntensity: { value: 1.0 },
-    uAmbientIntensity: { value: 0.6 },
+    uAmbientIntensity: { value: 0.2 },
     
     uColorText: { value: 0 },
     uAlphaText: { value: 0 },
@@ -31,12 +31,15 @@ export const hairStrandShader = {
     uHighlightText: { value: 0 },
 
     uHasColorText: { value: false },
-    uHasAlphaText: { value: false },
-    uHasOccTexture: { value: false },
-    uHasDirectionText: { value: false },
-    uHasTiltText: { value: false },
-    uHasHighlightText: { value: false },
+    uHasAlphaText: { value: HAIR_MATERIAL_CONFIG["Use Alpha texture"] },
+    uHasOccTexture: { value: HAIR_MATERIAL_CONFIG["Use Occ. texture"]  },
+    uHasDirectionText: { VALUE: false },
+    uHasTiltText: { value: HAIR_MATERIAL_CONFIG["Use Tilt texture"]  },
+    uHasHighlightText: { value: HAIR_MATERIAL_CONFIG["Use Highlight texture"]  },
 
+    uCustomAlphaTest: {value: DEBUG_CONFIG["Custom Alpha Test"]},
+    uAlphaToCoverageFix: {value: DEBUG_CONFIG["Alpha Coverage Fix"]},
+    uDiscardThreshold: {value: DEBUG_CONFIG["Discard Threshold"]}
   }
   ,
   vertexShader:  /* glsl */`
@@ -119,6 +122,9 @@ export const hairStrandShader = {
   uniform float uTilt1;
   uniform float uTilt2;
 
+  uniform bool uCustomAlphaTest;
+  uniform bool uAlphaToCoverageFix;
+  uniform float uDiscardThreshold;
  
   
 
@@ -193,23 +199,34 @@ vec3 computeScheuermannLighting(){
 void main() {
 
     float alpha = uHasAlphaText ? texture(uAlphaText,_uv).r: 1.0;
+
+    
+    if(uAlphaToCoverageFix)
+    alpha = (alpha - uDiscardThreshold)/max(fwidth(alpha),0.0001)+0.5;
+
+    if(uCustomAlphaTest)
+    if(alpha<uDiscardThreshold)discard;
+
     float occ = uHasOccTexture ? texture(uOccTexture,_uv).r: 1.0;
      
     
     gl_FragColor = vec4(computeScheuermannLighting(),1.0);
     gl_FragColor*=occ;
     gl_FragColor.a=alpha;
+    
 }
 `
-  , depthWrite: false,
+  , depthWrite: true,
   alphaTest:true,
-  // transparent: true,
+  // alphaToCoverage:true,
+  // alphaHash:true,
+  transparent: true,
   blending: CustomBlending,
   blendSrc: SrcAlphaFactor,
   blendDst: OneMinusSrcAlphaFactor,
   blendSrcAlpha: 0,
   blendDstAlpha: 1,
-  // side: DoubleSide
+   side: DoubleSide
 
 }
 

@@ -1,70 +1,12 @@
 import { GUI } from "dat.gui";
-import { FurManager } from "./furManager";
-import { TextureType, __hairMaterial } from "./modelManager";
+import { TextureType, __hairMaterial, __skinMaterial } from "./modelManager";
 import { App } from "./app";
-import { Color } from "@seddi/three";
-
-const INPUT_FILE_GUI_CONFIG = {
-  "Upload Hair Model": function () {
-    var input = document.getElementById("hair-path");
-    input.click();
-  },
-  "Hair Model": "--",
-  "Show Hair": true,
-  "Upload Avatar Model": function () {
-    var input = document.getElementById("avatar-path");
-    input.click();
-  },
-  "Avatar Model": "--",
-  "Show Avatar": true,
-
-  "Upload Alpha Texture": function () {
-    var input = document.getElementById("alpha-tex-path");
-    input.click();
-  },
-  "Alpha Texture": "--",
-  "Upload Occ. Texture": function () {
-    var input = document.getElementById("normal-tex-path");
-    input.click();
-  },
-  "Occ. Texture": "--",
-  "Upload Direction Texture": function () {
-    var input = document.getElementById("direction-tex-path");
-    input.click();
-  },
-  "Direction Texture": "--",
-  "Upload Tilt Texture": function () {
-    var input = document.getElementById("tilt-tex-path");
-    input.click();
-  },
-  "Tilt Texture": "--",
-  "Upload Highlight Texture": function () {
-    var input = document.getElementById("highlight-tex-path");
-    input.click();
-  },
-  "Highlight Texture": "--",
-};
-const HAIR_MATERIAL_CONFIG = {
-  "Base Color": new Color(
-    __hairMaterial.uniforms.uColor.value.r * 255,
-    __hairMaterial.uniforms.uColor.value.g * 255,
-    __hairMaterial.uniforms.uColor.value.b * 255
-  ),
-  "Highlight Color": new Color(
-    __hairMaterial.uniforms.uSpecularColor.value.r * 255,
-    __hairMaterial.uniforms.uSpecularColor.value.g * 255,
-    __hairMaterial.uniforms.uSpecularColor.value.b * 255
-  ),
-  "Specular 1 Power": __hairMaterial.uniforms.uSpecularPower1.value,
-  "Specular 2 Power": __hairMaterial.uniforms.uSpecularPower2.value,
-  "Use Alpha texture": true,
-  "Use Tilt texture": true,
-  "Tilt 1": __hairMaterial.uniforms.uTilt1.value,
-  "Tilt 2": __hairMaterial.uniforms.uTilt2.value,
-  "Use Occ. texture": false,
-  "Use Highlight texture": true,
-  "Use Tangent from texture": false,
-};
+import {
+  INPUT_FILE_GUI_CONFIG,
+  HAIR_MATERIAL_CONFIG,
+  ENVIROMENT_CONFIG,
+  DEBUG_CONFIG,
+} from "./config";
 
 export class UILayer {
   fileInputUI: GUI;
@@ -76,6 +18,7 @@ export class UILayer {
   initGUI() {
     this.setupFileInputGUI();
     this.setupOptionsGUI();
+    this.setupDebugGUI();
   }
   private setupFileInputGUI() {
     this.fileInputUI = new GUI({ autoPlace: false, width: 350 });
@@ -136,11 +79,19 @@ export class UILayer {
   private setupOptionsGUI() {
     this.optionsUI = new GUI({ autoPlace: true, width: 350 });
 
-    const ambientFolder = this.optionsUI.addFolder("Ambient Light");
+    const ambientFolder = this.optionsUI.addFolder("Ambient");
+
+    var env_config = ENVIROMENT_CONFIG;
+
+    ambientFolder.add(env_config, "Blur", 0, 1, 0.05).onChange((value: any) => {
+      App.sceneProps.scene.backgroundBlurriness = value;
+    });
     ambientFolder
-      .add(App.sceneProps.ambientLight, "intensity", 0, 1, 0.1)
-      .onChange(function (value) {
+      .add(env_config, "Intensity", 0, 1, 0.1)
+      .onChange((value: any) => {
         __hairMaterial.uniforms.uAmbientIntensity.value = value;
+        __skinMaterial.envMapIntensity = value + 0.5;
+        App.sceneProps.scene.backgroundIntensity = value;
       });
     ambientFolder.open();
 
@@ -220,6 +171,42 @@ export class UILayer {
 
     hairFolder.open();
   }
+  private setupDebugGUI() {
+    var config = DEBUG_CONFIG;
+  
+
+    const debugFolder = this.optionsUI.addFolder("Debug Transparency");
+
+    debugFolder.add(config, "Custom Alpha Test").onChange(function (value) {
+      __hairMaterial.uniforms.uCustomAlphaTest.value = value;
+    });
+
+    debugFolder.add(config, "Alpha To Coverage").onChange(function (value) {
+      __hairMaterial.alphaToCoverage = value;
+    });
+    debugFolder.add(config, "Alpha Coverage Fix").onChange(function (value) {
+      __hairMaterial.uniforms.uAlphaToCoverageFix.value = value;
+    });
+      debugFolder.add(config, "Discard Threshold",0,1,0.05).onChange(function (value) {
+        __hairMaterial.uniforms.uDiscardThreshold.value = value;
+    });
+    debugFolder.add(config, "Alpha Test").onChange(function (value) {
+      __hairMaterial.alphaTest = value;
+    });
+    // debugFolder.add(config, "Sort Hair Tris").onChange(function (value) {
+    //   App.sceneProps.avatar.visible = value;
+    // });
+
+      debugFolder.add(config, "Blend").onChange(function (value) {
+        __hairMaterial.transparent = value;
+    });
+
+    debugFolder.open();
+
+
+
+  }
+
   updateModelName(newName: any, op: boolean) {
     op
       ? (INPUT_FILE_GUI_CONFIG["Hair Model"] = newName)
@@ -255,6 +242,7 @@ export class UILayer {
     this.updateFileInputUI();
     this.updateOptionsUI();
   }
+
   updateFileInputUI() {
     for (var i in this.fileInputUI.__folders) {
       for (var j in this.fileInputUI.__folders[i].__controllers) {
