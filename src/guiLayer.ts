@@ -7,6 +7,7 @@ import {
   ENVIROMENT_CONFIG,
   DEBUG_CONFIG,
 } from "./config";
+import { FrontSide,DoubleSide } from "@seddi/three";
 
 export class UILayer {
   fileInputUI: GUI;
@@ -190,16 +191,22 @@ export class UILayer {
       debugFolder.add(config, "Discard Threshold",0,1,0.05).onChange(function (value) {
         __hairMaterial.uniforms.uDiscardThreshold.value = value;
     });
-    debugFolder.add(config, "Alpha Test").onChange(function (value) {
+    debugFolder.add(config, "Alpha Test",0,1,0.05).onChange(function (value) {
       __hairMaterial.alphaTest = value;
     });
-    // debugFolder.add(config, "Sort Hair Tris").onChange(function (value) {
-    //   App.sceneProps.avatar.visible = value;
-    // });
+    debugFolder.add(config, "Sort hair tris").onChange(function (value) {
+      config["Sort hair tris"]=value;
+    });
 
-      debugFolder.add(config, "Blend").onChange(function (value) {
+      debugFolder.add(config, "Transparent").onChange(function (value) {
         __hairMaterial.transparent = value;
     });
+    debugFolder.add(config, "Depth write").onChange(function (value) {
+      __hairMaterial.depthWrite = value;
+  });
+  debugFolder.add(config, "BackFace Cull").onChange(function (value) {
+    value? __hairMaterial.side = FrontSide:__hairMaterial.side = DoubleSide;
+});
 
     debugFolder.open();
 

@@ -58,14 +58,14 @@ export const ENVIROMENT_CONFIG = {
   Blur: 0.0,
   Intensity: 0.3,
 };
-
 export const DEBUG_CONFIG = {
-  "Custom Alpha Test": true,
-  "Alpha To Coverage": true,
-  "Alpha Coverage Fix": true,
+  "Custom Alpha Test": false,
+  "Alpha To Coverage": false,
+  "Alpha Coverage Fix": false,
   "Discard Threshold": 0.5,
-  "Alpha Test": false,
-  "Blend": false,
+  "Alpha Test": 0.0,
+  "Transparent": false,
   "Sort hair tris": false,
-
+  "Depth write": true,
+  "BackFace Cull": false,
 };

@@ -12,7 +12,7 @@ import { brushShader } from './Shaders/BrushShader.js';
 import { BrushTool } from './brushTool';
 import { FurManager } from './furManager';
 import { UILayer } from './guiLayer';
-import { ENVIROMENT_CONFIG } from './config';
+import { DEBUG_CONFIG, ENVIROMENT_CONFIG } from './config';
 import { ModelManager, TextureType } from './modelManager';
 
 
@@ -174,21 +174,21 @@ export class App {
 
         const exrLoader = new EXRLoader();
         const root = this;
-        const envMap = exrLoader.load('./data/textures/envMap_2.exr',function(texture){
+        const envMap = exrLoader.load('./data/textures/envMap_2.exr', function (texture) {
 
             var exrCubeRenderTarget = pmremGenerator.fromEquirectangular(texture);
             var exrBackground = exrCubeRenderTarget.texture;
             var newEnvMap = exrCubeRenderTarget ? exrCubeRenderTarget.texture : null;
 
-            root.scene.environment =newEnvMap;
+            root.scene.environment = newEnvMap;
 
             root.scene.background = newEnvMap;
             root.scene.backgroundIntensity = ENVIROMENT_CONFIG.Intensity;
             root.scene.backgroundBlurriness = ENVIROMENT_CONFIG.Blur;
-            
+
 
         });
-       
+
 
 
         App.sceneProps.camera.position.z = 7;
@@ -225,8 +225,10 @@ export class App {
      */
     private render() {
 
-        //  ModelManager.depthSortHairGeometry();
+        if (DEBUG_CONFIG["Sort hair tris"])
+            ModelManager.depthSortHairGeometry();
         this.renderer.clear();
+        // this.renderer.render(this.scene, App.sceneProps);
         this.renderComposer.render();
 
     }

@@ -201,8 +201,12 @@ void main() {
     float alpha = uHasAlphaText ? texture(uAlphaText,_uv).r: 1.0;
 
     
-    if(uAlphaToCoverageFix)
-    alpha = (alpha - uDiscardThreshold)/max(fwidth(alpha),0.0001)+0.5;
+    if(uAlphaToCoverageFix){
+
+      alpha = ((alpha - uDiscardThreshold)/max(fwidth(alpha),0.000001)+0.5);
+
+
+    }
 
     if(uCustomAlphaTest)
     if(alpha<uDiscardThreshold)discard;
@@ -212,15 +216,16 @@ void main() {
     
     gl_FragColor = vec4(computeScheuermannLighting(),1.0);
     gl_FragColor*=occ;
+    // gl_FragColor.a=alpha== 1.0? 0.8: alpha;
     gl_FragColor.a=alpha;
     
 }
 `
-  , depthWrite: true,
-  alphaTest:true,
+  , depthWrite: DEBUG_CONFIG["Depth write"],
+  alphaTest:DEBUG_CONFIG["Alpha Test"],
   // alphaToCoverage:true,
   // alphaHash:true,
-  transparent: true,
+  transparent: DEBUG_CONFIG["Transparent"],
   blending: CustomBlending,
   blendSrc: SrcAlphaFactor,
   blendDst: OneMinusSrcAlphaFactor,
