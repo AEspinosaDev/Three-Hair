@@ -1,8 +1,11 @@
-# tHREE HAIR
+# THREE HAIR STRANDS
 
-npm install
-npm run build
-live server to index.html
+WIP
 
-## WORK IN PROGRESS
 
+* npm install
+* npm run build
+* live server to index.html
+
+
+![Screenshot (8)](https://github.com/AEspinosaDev/Three-Hair/assets/79087129/8e0d295e-55f4-400b-a344-22949de9a8f5)
