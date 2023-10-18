@@ -1,9 +1,11 @@
 # THREE HAIR STRANDS
 
+You won't be able to install threejs package because I'm using a modified private version of it. You can change the version to an official version in the package.json and it should work.
+
 WIP
 
 
-* npm install
+* npm install (change threejs version first in json!!!)
 * npm run build
 * live server to index.html
 
